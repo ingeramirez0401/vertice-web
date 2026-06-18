@@ -1,0 +1,12 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #05070d; overflow: hidden; height: 100%; }
+
+@keyframes vrise  { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+@keyframes vpop   { from { opacity: 0; transform: scale(.92) }         to { opacity: 1; transform: none } }
+@keyframes vspin  { to   { transform: rotate(360deg) } }
+@keyframes vbreath{ 0%,100% { opacity: .45 } 50% { opacity: .95 } }
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+input::placeholder { color: rgba(255,255,255,.32); }

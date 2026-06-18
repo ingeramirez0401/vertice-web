@@ -1,0 +1,105 @@
+version: "3.7"
+
+services:
+  ## --------------------------- VÉRTICE WEB --------------------------- ##
+  vertice_web:
+    image: ghcr.io/ingeramirez0401/vertice-web:latest
+    restart: unless-stopped
+    networks:
+      - CambiosNet
+      - vtx_internal
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      # Supabase (self-hosted)
+      NEXT_PUBLIC_SUPABASE_URL: "https://devsupabase.cambios-app.com"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.qh_kwkB4VQuwZxhrrjhVYWuM06I9P5-N9EPOHUYbMc4"
+      SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogInNlcnZpY2Vfcm9sZSIsCiAgImlzcyI6ICJzdXBhYmFzZSIsCiAgImlhdCI6IDE3MTUwNTA4MDAsCiAgImV4cCI6IDE4NzI4MTcyMDAKfQ.pG42nkDNNDYyncEGmPJnqCplaBUsmkDcpRLUw76_Lj4"
+
+      # Redis (servicio interno del stack)
+      REDIS_URL: "redis://vertice_redis:6379"
+
+      # App
+      NEXT_PUBLIC_APP_URL: "https://vtx.nodalyst.ai"
+      NEXT_PUBLIC_BRAND_NAME: "VÉRTICE"
+      NEXT_PUBLIC_REGION_LABEL: "Gobernación"
+
+      # Export endpoint (genera uno con: openssl rand -hex 32)
+      EXPORT_API_KEY: "cambia-esto-por-un-token-seguro"
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=CambiosNet
+
+        # Router HTTPS
+        - traefik.http.routers.vertice_web.rule=Host(`vtx.nodalyst.ai`)
+        - traefik.http.routers.vertice_web.entrypoints=websecure
+        - traefik.http.routers.vertice_web.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.vertice_web.service=vertice_web
+
+        # Service → puerto del contenedor Next.js standalone
+        - traefik.http.services.vertice_web.loadbalancer.server.port=3000
+        - traefik.http.services.vertice_web.loadbalancer.passHostHeader=true
+
+        # Middlewares
+        - traefik.http.routers.vertice_web.middlewares=vtx-headers,vtx-compress
+
+        # Security Headers
+        - traefik.http.middlewares.vtx-headers.headers.sslRedirect=true
+        - traefik.http.middlewares.vtx-headers.headers.stsSeconds=31536000
+        - traefik.http.middlewares.vtx-headers.headers.stsIncludeSubdomains=true
+        - traefik.http.middlewares.vtx-headers.headers.stsPreload=true
+        - traefik.http.middlewares.vtx-headers.headers.forceSTSHeader=true
+        - traefik.http.middlewares.vtx-headers.headers.contentTypeNosniff=true
+        - traefik.http.middlewares.vtx-headers.headers.browserXssFilter=true
+        - traefik.http.middlewares.vtx-headers.headers.customResponseHeaders.X-Robots-Tag=none
+
+        # Compression
+        - traefik.http.middlewares.vtx-compress.compress=true
+
+  ## --------------------------- REDIS (interno) ----------------------- ##
+  vertice_redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server","--save","60","1","--maxmemory","256mb","--maxmemory-policy","allkeys-lru"]
+    volumes:
+      - vertice_redis_data:/data
+    networks:
+      - vtx_internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  CambiosNet:
+    external: true
+  vtx_internal:
+    driver: overlay
+    internal: true   # Redis no es accesible desde fuera del stack
+
+volumes:
+  vertice_redis_data:

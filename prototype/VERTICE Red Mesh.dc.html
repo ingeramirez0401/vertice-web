@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#05070d;overflow:hidden;height:100%}
+@keyframes vrise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes vpop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes vspin{to{transform:rotate(360deg)}}
+@keyframes vbreath{0%,100%{opacity:.45}50%{opacity:.95}}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+input::placeholder{color:rgba(255,255,255,.32)}
+</style>
+</helmet>
+
+<div ref="{{ stageRef }}" style="position:fixed;inset:0;overflow:hidden;font-family:'Space Grotesk',sans-serif;color:var(--text,#dbeee9);--bg:#05070d;--accent:#27e0c8;--accent2:#5b9bff;--panel:rgba(9,14,22,.74);--border:rgba(120,200,210,.16);--text:#dbeee9;--muted:#7c8a92;background:radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, #05070d 72%);">
+
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:46px 46px;pointer-events:none;mask-image:radial-gradient(circle at 50% 45%,#000 30%,transparent 78%);-webkit-mask-image:radial-gradient(circle at 50% 45%,#000 30%,transparent 78%)"></div>
+
+  <canvas ref="{{ canvasRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
+
+  <div style="position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 220px 30px rgba(0,0,0,.55)"></div>
+
+  <!-- TOP BAR -->
+  <div style="position:absolute;top:0;left:0;right:0;height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:30;background:linear-gradient(180deg,rgba(5,7,13,.82),rgba(5,7,13,0));pointer-events:none">
+    <div style="display:flex;align-items:center;gap:12px;pointer-events:auto">
+      <div style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--accent,#27e0c8);transform:rotate(45deg);box-shadow:0 0 18px color-mix(in srgb,var(--accent,#27e0c8) 60%,transparent)"><div style="width:9px;height:9px;background:var(--accent,#27e0c8);box-shadow:0 0 12px var(--accent,#27e0c8)"></div></div>
+      <div style="line-height:1">
+        <div style="font-size:19px;font-weight:700;letter-spacing:.34em;padding-left:.34em">{{ brand }}</div>
+        <div style="font-size:10px;letter-spacing:.26em;color:var(--muted,#7c8a92);text-transform:uppercase;margin-top:3px">Red de movimiento · {{ regionLabel }}</div>
+      </div>
+    </div>
+
+    <div style="position:relative;width:min(380px,38vw);pointer-events:auto">
+      <div style="display:flex;align-items:center;gap:9px;height:38px;padding:0 14px;background:var(--panel,rgba(9,14,22,.74));backdrop-filter:blur(14px);border:1px solid var(--border,rgba(120,200,210,.16));border-radius:11px">
+        <div style="width:13px;height:13px;border:1.5px solid var(--muted,#7c8a92);border-radius:50%;position:relative;flex:none"><div style="position:absolute;width:6px;height:1.5px;background:var(--muted,#7c8a92);bottom:-3px;right:-3px;transform:rotate(45deg)"></div></div>
+        <input value="{{ query }}" onInput="{{ onSearch }}" placeholder="Buscar persona o ID de adhesión…" style="flex:1;background:transparent;border:none;outline:none;color:var(--text,#dbeee9);font-family:'Space Grotesk',sans-serif;font-size:13px"/>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted,#7c8a92)">{{ total }} miembros</span>
+      </div>
+      <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:46px;left:0;right:0;background:var(--panel,rgba(9,14,22,.92));backdrop-filter:blur(16px);border:1px solid var(--border,rgba(120,200,210,.16));border-radius:12px;overflow:hidden;animation:vpop .16s ease;box-shadow:0 18px 50px rgba(0,0,0,.5)">
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+            <div onClick="{{ r.pick }}" style="display:flex;align-items:center;gap:11px;padding:9px 13px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04)" style-hover="background:rgba(255,255,255,.05)">
+              <div style="width:24px;height:24px;border-radius:50%;flex:none;background:{{ r.color }};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#04121a">{{ r.initials }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div>
+                <div style="font-size:10px;color:var(--muted,#7c8a92)">{{ r.roleLabel }} · nivel {{ r.depth }}</div>
+              </div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent,#27e0c8)">{{ r.idCode }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;pointer-events:auto">
+      <div style="display:flex;gap:7px">
+        <sc-for list="{{ themes }}" as="t" hint-placeholder-count="4">
+          <div onClick="{{ t.pick }}" title="{{ t.label }}" style="width:20px;height:20px;border-radius:50%;cursor:pointer;background:linear-gradient(135deg,{{ t.c1 }},{{ t.c2 }});outline:{{ t.ring }};outline-offset:2px;transition:transform .15s" style-hover="transform:scale(1.18)"></div>
+        </sc-for>
+      </div>
+      <div onClick="{{ openShare }}" style="display:flex;align-items:center;gap:9px;height:38px;padding:0 17px;border-radius:11px;cursor:pointer;font-weight:600;font-size:13px;color:#04121a;background:linear-gradient(135deg,var(--accent,#27e0c8),var(--accent2,#5b9bff));box-shadow:0 0 22px color-mix(in srgb,var(--accent,#27e0c8) 45%,transparent)" style-hover="filter:brightness(1.08)">
+        <span style="font-size:15px">⟢</span> Mi ID de adhesión
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT: leyenda + vista -->
+  <div style="position:absolute;left:20px;bottom:20px;z-index:25;display:flex;flex-direction:column;gap:12px">
+    <div style="background:var(--panel,rgba(9,14,22,.74));backdrop-filter:blur(14px);border:1px solid var(--border,rgba(120,200,210,.16));border-radius:13px;padding:12px 14px;width:188px">
+      <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted,#7c8a92);margin-bottom:9px">Vista de red</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <div onClick="{{ setGlobal }}" style="{{ styGlobal }}">Global</div>
+        <div onClick="{{ setPersonal }}" style="{{ styPersonal }}">La mía</div>
+      </div>
+      <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted,#7c8a92);margin-bottom:8px">Estado</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:11.5px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--accent,#27e0c8);box-shadow:0 0 8px var(--accent,#27e0c8)"></span>Activo</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--accent2,#5b9bff);box-shadow:0 0 8px var(--accent2,#5b9bff)"></span>Nuevo ingreso</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:#3a434c"></span>Inactivo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CENTER: layout + acciones -->
+  <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:20px;z-index:25;display:flex;align-items:center;gap:8px;background:var(--panel,rgba(9,14,22,.74));backdrop-filter:blur(14px);border:1px solid var(--border,rgba(120,200,210,.16));border-radius:14px;padding:7px 8px">
+    <div onClick="{{ setRadial }}" style="{{ styRadial }}">◎ Radial</div>
+    <div onClick="{{ setTree }}" style="{{ styTree }}">⋔ Árbol</div>
+    <div onClick="{{ setForce }}" style="{{ styForce }}">✦ Orgánico</div>
+    <div style="width:1px;height:22px;background:var(--border,rgba(120,200,210,.16));margin:0 2px"></div>
+    <div onClick="{{ fitView }}" title="Encuadrar todo" style="display:flex;align-items:center;justify-content:center;width:34px;height:32px;border-radius:9px;cursor:pointer;font-size:14px;color:var(--text,#dbeee9)" style-hover="background:rgba(255,255,255,.06)">⤢</div>
+    <div onClick="{{ toggleLive }}" style="display:flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:500;color:{{ liveColor }}" style-hover="background:rgba(255,255,255,.06)">
+      <span style="width:8px;height:8px;border-radius:50%;background:{{ liveColor }};box-shadow:0 0 9px {{ liveColor }};animation:vbreath 1.4s infinite"></span>{{ liveLabel }}
+    </div>
+  </div>
+
+  <!-- BOTTOM RIGHT: stats -->
+  <div style="position:absolute;right:20px;bottom:20px;z-index:25;display:flex;gap:9px">
+    <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+      <div style="background:var(--panel,rgba(9,14,22,.74));backdrop-filter:blur(14px);border:1px solid var(--border,rgba(120,200,210,.16));border-radius:13px;padding:11px 15px;min-width:78px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:23px;font-weight:600;color:{{ s.color }};line-height:1">{{ s.value }}</div>
+        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#7c8a92);margin-top:5px">{{ s.label }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <sc-if value="{{ selected }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:74px;right:20px;width:340px;max-width:92vw;max-height:calc(100vh - 170px);overflow-y:auto;z-index:28;background:var(--panel,rgba(9,14,22,.86));backdrop-filter:blur(20px);border:1px solid var(--border,rgba(120,200,210,.22));border-radius:18px;animation:vrise .22s ease;box-shadow:0 24px 70px rgba(0,0,0,.55)">
+      <div style="position:relative;padding:20px 20px 16px;background:linear-gradient(180deg,color-mix(in srgb,{{ sel.color }} 16%,transparent),transparent)">
+        <div onClick="{{ clearSel }}" style="position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted,#7c8a92);font-size:15px" style-hover="background:rgba(255,255,255,.08)">✕</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:54px;height:54px;border-radius:50%;flex:none;background:linear-gradient(135deg,{{ sel.color }},color-mix(in srgb,{{ sel.color }} 40%,#04121a));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#04121a;box-shadow:0 0 26px color-mix(in srgb,{{ sel.color }} 55%,transparent);border:2px solid color-mix(in srgb,{{ sel.color }} 60%,transparent)">{{ sel.initials }}</div>
+          <div style="min-width:0">
+            <div style="font-size:18px;font-weight:700;line-height:1.15">{{ sel.name }}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+              <span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:color-mix(in srgb,{{ sel.color }} 22%,transparent);color:{{ sel.color }}">{{ sel.roleLabel }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted,#7c8a92)">{{ sel.idCode }}</span>
+            </div>
+          </div>
+        </div>
+        <sc-if value="{{ sel.isMe }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:12px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,#27e0c8);display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#27e0c8);box-shadow:0 0 8px var(--accent,#27e0c8)"></span>Este eres tú</div>
+        </sc-if>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border,rgba(120,200,210,.16));margin:0 0 4px">
+        <div style="background:var(--panel,#0a1018);padding:13px 14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600">{{ sel.depth }}</div><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted,#7c8a92);margin-top:3px">Nivel</div></div>
+        <div style="background:var(--panel,#0a1018);padding:13px 14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600">{{ sel.childrenCount }}</div><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted,#7c8a92);margin-top:3px">Hijos</div></div>
+        <div style="background:var(--panel,#0a1018);padding:13px 14px"><div style="font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;color:var(--accent,#27e0c8)">{{ sel.descCount }}</div><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted,#7c8a92);margin-top:3px">Red total</div></div>
+      </div>
+
+      <div style="padding:14px 20px 6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted,#7c8a92)">Linaje hasta el origen</span><span style="font-size:10px;color:var(--muted,#7c8a92)">{{ sel.statusLabel }}</span></div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:11.5px">
+          <sc-for list="{{ sel.ancestors }}" as="a" hint-placeholder-count="2">
+            <span onClick="{{ a.pick }}" style="cursor:pointer;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.05);color:var(--text,#dbeee9)" style-hover="background:rgba(255,255,255,.1)">{{ a.name }}</span>
+            <span style="color:var(--accent,#27e0c8);opacity:.6">→</span>
+          </sc-for>
+          <span style="padding:3px 9px;border-radius:7px;background:color-mix(in srgb,{{ sel.color }} 22%,transparent);color:{{ sel.color }};font-weight:600">{{ sel.name }}</span>
+        </div>
+      </div>
+
+      <sc-if value="{{ sel.hasParent }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ sel.gotoParent }}" style="margin:10px 20px;padding:11px 14px;border-radius:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);cursor:pointer;display:flex;align-items:center;justify-content:space-between" style-hover="background:rgba(255,255,255,.08)">
+          <div><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted,#7c8a92)">Adherido por</div><div style="font-size:13.5px;font-weight:600;margin-top:2px">{{ sel.parentName }}</div></div>
+          <span style="color:var(--accent,#27e0c8);font-size:15px">↗</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sel.hasChildren }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 20px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <span style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted,#7c8a92)">Adheridos directos · {{ sel.childrenCount }}</span>
+            <span onClick="{{ sel.toggleCollapse }}" style="font-size:10.5px;cursor:pointer;color:var(--accent,#27e0c8)" style-hover="text-decoration:underline">{{ sel.collapseLabel }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <sc-for list="{{ sel.children }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.pick }}" style="display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:9px;cursor:pointer" style-hover="background:rgba(255,255,255,.05)">
+                <div style="width:26px;height:26px;border-radius:50%;flex:none;background:{{ c.color }};display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:#04121a">{{ c.initials }}</div>
+                <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div><div style="font-size:10px;color:var(--muted,#7c8a92)">{{ c.roleLabel }} · {{ c.descCount }} en su red</div></div>
+                <span style="color:var(--muted,#7c8a92);font-size:13px">›</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ sel.moreChildren }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11px;color:var(--muted,#7c8a92);padding:4px 9px">+ {{ sel.moreChildren }} más en niveles inferiores</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- SHARE MODAL -->
+  <sc-if value="{{ shareOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeShare }}" style="position:absolute;inset:0;z-index:50;background:rgba(3,5,9,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;animation:vpop .2s ease">
+      <div onClick="{{ stop }}" style="width:430px;max-width:94vw;background:linear-gradient(180deg,#0c1420,#080c14);border:1px solid var(--border,rgba(120,200,210,.24));border-radius:22px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.7)">
+        <div style="position:relative;padding:26px 26px 22px;text-align:center;background:radial-gradient(420px 180px at 50% -20%,color-mix(in srgb,var(--accent,#27e0c8) 28%,transparent),transparent)">
+          <div onClick="{{ closeShare }}" style="position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted,#7c8a92)" style-hover="background:rgba(255,255,255,.08)">✕</div>
+          <div style="width:64px;height:64px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#27e0c8),var(--accent2,#5b9bff));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#04121a;box-shadow:0 0 34px color-mix(in srgb,var(--accent,#27e0c8) 60%,transparent)">{{ me.initials }}</div>
+          <div style="font-size:13px;color:var(--muted,#7c8a92)">Estás invitando como</div>
+          <div style="font-size:20px;font-weight:700;margin-top:2px">{{ me.name }}</div>
+          <div style="font-size:12px;color:var(--accent,#27e0c8);margin-top:3px">{{ me.roleLabel }} · {{ me.descCount }} personas en tu red</div>
+        </div>
+
+        <div style="padding:4px 26px 24px">
+          <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted,#7c8a92);margin:14px 0 8px">Tu ID de adhesión</div>
+          <div onClick="{{ copyId }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-radius:13px;border:1px dashed color-mix(in srgb,var(--accent,#27e0c8) 50%,transparent);background:color-mix(in srgb,var(--accent,#27e0c8) 8%,transparent);cursor:pointer" style-hover="background:color-mix(in srgb,var(--accent,#27e0c8) 14%,transparent)">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;letter-spacing:.14em;color:var(--accent,#27e0c8)">{{ me.idCode }}</span>
+            <span style="font-size:11px;color:var(--muted,#7c8a92);display:flex;align-items:center;gap:6px">⧉ copiar</span>
+          </div>
+
+          <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted,#7c8a92);margin:18px 0 8px">Link de invitación</div>
+          <div onClick="{{ copyLink }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);cursor:pointer" style-hover="background:rgba(255,255,255,.09)">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--text,#dbeee9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ me.link }}</span>
+            <span style="font-size:11px;color:var(--accent,#27e0c8);flex:none">⧉</span>
+          </div>
+
+          <div style="margin-top:20px;padding:14px 16px;border-radius:13px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--muted,#7c8a92);line-height:1.6">Quien use tu ID quedará <strong style="color:var(--text,#dbeee9)">enlazado como tu hijo directo</strong> en la red, sumando profundidad a tu rama. Cada persona pertenece a un solo padre.</div>
+
+          <div onClick="{{ simulateJoin }}" style="margin-top:16px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;font-weight:600;font-size:14px;color:#04121a;background:linear-gradient(135deg,var(--accent,#27e0c8),var(--accent2,#5b9bff));box-shadow:0 0 26px color-mix(in srgb,var(--accent,#27e0c8) 40%,transparent)" style-hover="filter:brightness(1.08)">⟢ Simular nuevo adherido</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:50%;bottom:84px;transform:translateX(-50%);z-index:60;padding:11px 20px;border-radius:11px;background:var(--accent,#27e0c8);color:#04121a;font-weight:600;font-size:13px;box-shadow:0 0 30px color-mix(in srgb,var(--accent,#27e0c8) 60%,transparent);animation:vrise .2s ease">{{ toast }}</div>
+  </sc-if>
+
+  <!-- HINT -->
+  <div style="position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:20;font-size:11px;color:var(--muted,#7c8a92);letter-spacing:.04em;pointer-events:none;background:rgba(5,7,13,.5);padding:5px 13px;border-radius:20px">Arrastra para mover · rueda para zoom · clic en un nodo para explorar su linaje</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:760},&quot;brandName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;VÉRTICE&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;regionLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Gobernación&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;candidateName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Silvano Serrano&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;neon&quot;,&quot;options&quot;:[&quot;cian&quot;,&quot;violeta&quot;,&quot;neon&quot;,&quot;claro&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;networkSize&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:200,&quot;min&quot;:40,&quot;max&quot;:420,&quot;step&quot;:10,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.canvasRef = (el)=>{ if(el && el!==this.canvas){ this.canvas=el; this._wire(); } };
+    this.stageRef = (el)=>{ this.stage=el; if(el) this._applyTheme(this._themeKey,true); };
+    this.cam={x:0,y:0,s:1}; this.camGoal={x:0,y:0,s:1};
+    this.dragging=false; this.moved=0; this.last={x:0,y:0};
+    this.hoverId=-1; this.selId=-1; this.chain=new Set(); this.focus=null;
+    this.cssW=1200; this.cssH=700; this.dpr=Math.min(window.devicePixelRatio||1,2);
+    this.mode='radial'; this._themeKey='cian';
+    this._t0=performance.now();
+    this.THEMES={
+      cian:{bg:'#05070d',bg2:'#0b1422',accent:'#27e0c8',accent2:'#5b9bff',text:'#dbeee9',muted:'#7c8a92',border:'rgba(120,200,210,.16)',panel:'rgba(9,14,22,.74)'},
+      violeta:{bg:'#0a0612',bg2:'#160a26',accent:'#b06cff',accent2:'#ff5db0',text:'#ece4f6',muted:'#8a7d97',border:'rgba(176,108,255,.18)',panel:'rgba(15,9,26,.76)'},
+      neon:{bg:'#04120d',bg2:'#082018',accent:'#3dff9a',accent2:'#d6ff3a',text:'#d9f6e6',muted:'#6e8a7c',border:'rgba(61,255,154,.16)',panel:'rgba(7,20,15,.76)'},
+      claro:{bg:'#e9e7df',bg2:'#f3f1ea',accent:'#0c8f78',accent2:'#3a6df0',text:'#1a2620',muted:'#6a766f',border:'rgba(12,40,33,.16)',panel:'rgba(255,255,255,.78)'}
+    };
+    this._gen();
+    this.state={selectedId:-1, query:'', view:'global', layout:'radial', theme:'cian', live:true, shareOpen:false, toast:null, tick:0};
+    this.maxAdd=60; this.added=0;
+  }
+
+  /* ---------- data ---------- */
+  _rng(seed){ let s=seed>>>0; return ()=>{ s=(s+0x6D2B79F5)>>>0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+  _gen(){
+    const rnd=this._rng(73);
+    const fn=['Ana','Luis','María','Carlos','Sofía','José','Camila','Diego','Valentina','Andrés','Lucía','Mateo','Daniela','Javier','Paula','Sebastián','Gabriela','Tomás','Isabela','Felipe','Renata','Emilio','Martina','Nicolás','Catalina','Hugo','Elena','Rafael','Sara','Julián','Mariana','Óscar','Lorena','Pablo','Verónica','Iván','Natalia','Esteban','Carmen','Rodrigo'];
+    const ln=['García','Rodríguez','Martínez','López','Hernández','González','Pérez','Sánchez','Ramírez','Torres','Flores','Rivera','Gómez','Díaz','Cruz','Morales','Ortiz','Gutiérrez','Castro','Vargas','Romero','Mendoza','Aguilar','Vega','Rojas','Navarro','Campos','Cortés','Ríos','Luna'];
+    const roles=['Candidato','Coordinador General','Líder Zonal','Líder de Barrio','Promotor','Simpatizante','Simpatizante'];
+    const N=Math.max(40,Math.min(420, this.props.networkSize||200));
+    const nodes=[]; const used=new Set();
+    const mkId=()=>{ let c; do{ c='VTX-'+Math.floor(rnd()*1296).toString(36).toUpperCase().padStart(2,'0')+Math.floor(rnd()*1296).toString(36).toUpperCase().padStart(2,'0'); }while(used.has(c)); used.add(c); return c; };
+    const mkName=()=> fn[Math.floor(rnd()*fn.length)]+' '+ln[Math.floor(rnd()*ln.length)];
+    const now=Date.now(), DAY=86400000;
+    const root={id:0,parent:-1,depth:0,children:[],name:this.props.candidateName||'Alejandro Marín',role:roles[0],idCode:'VTX-001',status:'activo',joined:now-185*DAY};
+    nodes.push(root);
+    const COORD=7; const cap=[99,16,11,8,6,4];
+    for(let i=1;i<N;i++){
+      let parent;
+      if(i<=COORD){ parent=root; }
+      else {
+        // preferential attachment BELOW the coordinators (root excluded) → real depth
+        let pool=[],wsum=0;
+        for(const nd of nodes){ if(nd.depth<1||nd.depth>=6) continue; if(nd.children.length>=cap[nd.depth]) continue; const w=(1+nd.children.length*0.45)/Math.pow(nd.depth,0.7); pool.push([nd,w]); wsum+=w; }
+        if(!pool.length){ parent=nodes[1+Math.floor(rnd()*COORD)]; }
+        else { let r=rnd()*wsum; parent=pool[0][0]; for(const [nd,w] of pool){ r-=w; if(r<=0){ parent=nd; break; } } }
+      }
+      const depth=parent.depth+1;
+      const joined=now - Math.max(1,(150-depth*16))*DAY*rnd() - rnd()*4*DAY;
+      let status='activo';
+      const age=(now-joined)/DAY;
+      if(age<11) status='nuevo'; else if(rnd()<0.13) status='inactivo';
+      const nd={id:i,parent:parent.id,depth,children:[],name:mkName(),role:roles[Math.min(depth,roles.length-1)],idCode:mkId(),status,joined};
+      parent.children.push(i); nodes.push(nd);
+    }
+    this.nodes=nodes;
+    // descendants count
+    const desc=new Array(nodes.length).fill(0);
+    for(let i=nodes.length-1;i>=0;i--){ const nd=nodes[i]; let c=0; for(const k of nd.children) c+=1+desc[k]; desc[i]=c; }
+    nodes.forEach((n,i)=>n.desc=desc[i]);
+    // pick "me": depth 2-3 with children
+    let me=nodes.find(n=>n.depth===3&&n.children.length>=2) || nodes.find(n=>n.depth===2&&n.children.length>=2) || nodes[5];
+    me.isMe=true; this.meId=me.id;
+    // init positions
+    nodes.forEach(n=>{ n.x=0;n.y=0;n.tx=0;n.ty=0;n.vx=0;n.vy=0;n.visible=true;n.collapsed=false;n.born=0; });
+    this._layout(true);
+  }
+
+  initials(n){ const p=n.name.split(' '); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
+  roleLabel(n){ return n.role; }
+  statusLabel(n){ return n.status==='nuevo'?'Nuevo ingreso':n.status==='inactivo'?'Inactivo':'Activo'; }
+  nodeColor(n){ const T=this.THEMES[this._themeKey]; if(n.depth===0) return '#ffd86b'; if(n.status==='inactivo') return T.bg==='#e9e7df'?'#9aa39c':'#3a434c'; if(n.status==='nuevo') return T.accent2; return T.accent; }
+  ancestorsOf(id){ const arr=[]; let n=this.nodes[id]; while(n && n.parent>=0){ arr.unshift(n.parent); n=this.nodes[n.parent]; } return arr; }
+  descSet(id){ const set=new Set(); const st=[id]; while(st.length){ const k=st.pop(); for(const c of this.nodes[k].children){ set.add(c); st.push(c);} } return set; }
+
+  /* ---------- layout ---------- */
+  _layout(immediate){
+    const nodes=this.nodes;
+    nodes.forEach(n=>n.visible=false);
+    let leaf=0;
+    const ring=190, ygap=140, xgap=50;
+    const root=nodes[0];
+    const pass=(n)=>{ n.visible=true; const kids=n.collapsed?[]:n.children; if(kids.length===0){ n._a=leaf; n._b=leaf+1; leaf++; return; } const s=leaf; for(const k of kids) pass(nodes[k]); n._a=s; n._b=leaf; };
+    pass(root);
+    const L=Math.max(1,leaf);
+    for(const n of nodes){ if(!n.visible) continue;
+      const c=(n._a+n._b)/2;
+      if(this.mode==='tree'){ n.tx=(c-L/2)*xgap; n.ty=n.depth*ygap - 260; }
+      else { const ang=(c/L)*Math.PI*2 - Math.PI/2; const rad=n.depth*ring; n.tx=Math.cos(ang)*rad; n.ty=Math.sin(ang)*rad; }
+    }
+    if(immediate){ for(const n of nodes){ if(n.visible){ n.x=n.tx; n.y=n.ty; } } }
+    if(this.mode==='force'){ for(const n of nodes){ if(n.visible && n.x===0 && n.y===0){ n.x=n.tx; n.y=n.ty; } } }
+  }
+
+  _forceStep(){
+    const vis=this.nodes.filter(n=>n.visible);
+    const k=1700, spring=145, damp=0.86;
+    for(let i=0;i<vis.length;i++){ const a=vis[i];
+      for(let j=i+1;j<vis.length;j++){ const b=vis[j];
+        let dx=a.x-b.x, dy=a.y-b.y; let d2=dx*dx+dy*dy; if(d2<1) d2=1; if(d2>52000) continue;
+        const f=k/d2; const d=Math.sqrt(d2); const fx=dx/d*f, fy=dy/d*f; a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy; }
+    }
+    for(const n of vis){ if(n.parent<0) continue; const p=this.nodes[n.parent]; if(!p.visible) continue;
+      let dx=p.x-n.x, dy=p.y-n.y; const d=Math.sqrt(dx*dx+dy*dy)||1; const f=(d-spring)*0.012; n.vx+=dx/d*f; n.vy+=dy/d*f; p.vx-=dx/d*f*0.5; p.vy-=dy/d*f*0.5; }
+    for(const n of vis){ n.vx-=n.x*0.0006; n.vy-=n.y*0.0006; n.vx*=damp; n.vy*=damp; if(n.parent<0){ n.x=0;n.y=0;n.vx=0;n.vy=0; continue; } n.x+=n.vx; n.y+=n.vy; }
+  }
+
+  /* ---------- view ---------- */
+  worldToScreen(wx,wy){ return [wx*this.cam.s+this.cam.x, wy*this.cam.s+this.cam.y]; }
+  screenToWorld(sx,sy){ return [(sx-this.cam.x)/this.cam.s, (sy-this.cam.y)/this.cam.s]; }
+  fitView(animate){
+    const vis=this.nodes.filter(n=>n.visible); if(!vis.length) return;
+    let minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+    for(const n of vis){ minx=Math.min(minx,n.tx||n.x); miny=Math.min(miny,n.ty||n.y); maxx=Math.max(maxx,n.tx||n.x); maxy=Math.max(maxy,n.ty||n.y); }
+    const spanx=Math.max(200,maxx-minx), spany=Math.max(200,maxy-miny);
+    const s=Math.min(this.cssW/(spanx+260), this.cssH/(spany+260));
+    const cx=(minx+maxx)/2, cy=(miny+maxy)/2;
+    const goal={s:Math.max(0.12,Math.min(1.4,s)), x:this.cssW/2-cx*Math.max(0.12,Math.min(1.4,s)), y:this.cssH/2-cy*Math.max(0.12,Math.min(1.4,s))};
+    this.camGoal=goal; if(!animate){ this.cam={...goal}; }
+  }
+  centerOn(id,scale){
+    const n=this.nodes[id]; if(!n) return; const s=scale||Math.max(this.cam.s,0.72);
+    this.camGoal={s, x:this.cssW/2-(n.tx||n.x)*s, y:this.cssH*0.46-(n.ty||n.y)*s};
+  }
+
+  /* ---------- interaction ---------- */
+  _wire(){
+    const c=this.canvas;
+    this._resize();
+    c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); this.dragging=true; this.moved=0; this.last={x:e.clientX,y:e.clientY}; c.style.cursor='grabbing'; });
+    c.addEventListener('pointermove',e=>{
+      const r=c.getBoundingClientRect(); const mx=e.clientX-r.left, my=e.clientY-r.top;
+      if(this.dragging){ const dx=e.clientX-this.last.x, dy=e.clientY-this.last.y; this.cam.x+=dx; this.cam.y+=dy; this.camGoal.x+=dx; this.camGoal.y+=dy; this.moved+=Math.abs(dx)+Math.abs(dy); this.last={x:e.clientX,y:e.clientY}; }
+      else { const h=this._hit(mx,my); if(h!==this.hoverId){ this.hoverId=h; c.style.cursor=h>=0?'pointer':'grab'; } }
+    });
+    const up=(e)=>{ if(!this.dragging) return; this.dragging=false; this.canvas.style.cursor='grab'; if(this.moved<6){ const r=c.getBoundingClientRect(); const h=this._hit(e.clientX-r.left,e.clientY-r.top); if(h>=0) this.select(h); else this.clearSel(); } };
+    c.addEventListener('pointerup',up); c.addEventListener('pointercancel',()=>{this.dragging=false;});
+    c.addEventListener('wheel',e=>{ e.preventDefault(); const r=c.getBoundingClientRect(); const mx=e.clientX-r.left,my=e.clientY-r.top; const f=Math.exp(-e.deltaY*0.0014); const ns=Math.max(0.08,Math.min(3.2,this.cam.s*f)); const wx=(mx-this.cam.x)/this.cam.s, wy=(my-this.cam.y)/this.cam.s; this.cam.s=ns; this.cam.x=mx-wx*ns; this.cam.y=my-wy*ns; this.camGoal={...this.cam}; },{passive:false});
+    window.addEventListener('resize',this._onResize=()=>this._resize());
+  }
+  _resize(){ if(!this.canvas) return; const r=this.canvas.getBoundingClientRect(); this.cssW=r.width||window.innerWidth; this.cssH=r.height||window.innerHeight; this.dpr=Math.min(window.devicePixelRatio||1,2); this.canvas.width=this.cssW*this.dpr; this.canvas.height=this.cssH*this.dpr; }
+  _hit(sx,sy){
+    let best=-1,bd=1e9;
+    for(const n of this.nodes){ if(!n.visible) continue; const [px,py]=this.worldToScreen(n.x,n.y); const rr=this._rad(n)*this.cam.s+6; const d=(px-sx)**2+(py-sy)**2; if(d<rr*rr && d<bd){ bd=d; best=n.id; } }
+    return best;
+  }
+  _rad(n){ return Math.max(3.5, (n.depth===0?22: 15-n.depth*1.9)) + Math.min(9,n.children.length*0.55); }
+
+  select(id){ const n=this.nodes[id]; if(!n) return; this.selId=id; this.chain=new Set([id,...this.ancestorsOf(id)]); this.centerOn(id); this.setState({selectedId:id, query:'', shareOpen:false}); }
+  clearSel(){ this.selId=-1; this.chain=new Set(); this.setState({selectedId:-1}); }
+  toggleCollapse(id){ const n=this.nodes[id]; if(!n||!n.children.length) return; n.collapsed=!n.collapsed; this._layout(false); this.setState({tick:this.state.tick+1}); }
+
+  /* ---------- live join ---------- */
+  _joinTick(){
+    if(this.added>=this.maxAdd) return;
+    const cands=this.nodes.filter(n=>n.depth>0 && n.depth<6 && n.status!=='inactivo');
+    if(!cands.length) return;
+    const parent=cands[Math.floor(Math.random()*cands.length)];
+    this._spawn(parent);
+  }
+  _spawn(parent){
+    this.added++;
+    const fn=['Ana','Luis','María','Carlos','Sofía','José','Camila','Diego','Andrés','Lucía','Mateo','Daniela','Paula','Gabriela','Tomás','Renata','Emilio','Martina','Catalina','Sara'];
+    const ln=['García','Ramírez','Torres','Rivera','Gómez','Morales','Vargas','Romero','Mendoza','Vega','Rojas','Navarro','Ríos','Luna','Castro'];
+    const id=this.nodes.length;
+    const code='VTX-'+Math.floor(Math.random()*1296).toString(36).toUpperCase().padStart(2,'0')+Math.floor(Math.random()*1296).toString(36).toUpperCase().padStart(2,'0');
+    const nd={id,parent:parent.id,depth:parent.depth+1,children:[],name:fn[(Math.random()*fn.length)|0]+' '+ln[(Math.random()*ln.length)|0],role:['Candidato','Coordinador General','Líder Zonal','Líder de Barrio','Promotor','Simpatizante','Simpatizante'][Math.min(parent.depth+1,6)],idCode:code,status:'nuevo',joined:Date.now(),desc:0,x:parent.x,y:parent.y,tx:parent.x,ty:parent.y,vx:0,vy:0,visible:true,collapsed:false,born:performance.now()};
+    parent.children.push(id); this.nodes.push(nd);
+    // bump desc counts up the chain
+    let p=parent; while(p){ p.desc=(p.desc||0)+1; p=p.parent>=0?this.nodes[p.parent]:null; }
+    this._layout(false);
+    this.setState({tick:this.state.tick+1});
+  }
+
+  /* ---------- theme ---------- */
+  _applyTheme(key,silent){
+    this._themeKey=key; const T=this.THEMES[key]; const s=this.stage; if(!s) return;
+    s.style.setProperty('--bg',T.bg); s.style.setProperty('--accent',T.accent); s.style.setProperty('--accent2',T.accent2);
+    s.style.setProperty('--text',T.text); s.style.setProperty('--muted',T.muted); s.style.setProperty('--border',T.border); s.style.setProperty('--panel',T.panel);
+    s.style.background='radial-gradient(1200px 820px at 50% 42%, '+T.bg2+' 0%, '+T.bg+' 72%)';
+  }
+
+  /* ---------- lifecycle ---------- */
+  componentDidMount(){
+    this._applyTheme(this.state.theme,true);
+    requestAnimationFrame(()=>{ this._resize(); this._layout(true); this.fitView(false); });
+    let lastJoin=performance.now();
+    const loop=(now)=>{
+      const T=this.THEMES[this._themeKey];
+      // ease camera
+      this.cam.x+=(this.camGoal.x-this.cam.x)*0.12; this.cam.y+=(this.camGoal.y-this.cam.y)*0.12; this.cam.s+=(this.camGoal.s-this.cam.s)*0.12;
+      if(this.mode==='force'){ this._forceStep(); }
+      else { for(const n of this.nodes){ if(!n.visible) continue; n.x+=(n.tx-n.x)*0.14; n.y+=(n.ty-n.y)*0.14; } }
+      if(this.state.live && now-lastJoin>2600){ lastJoin=now; this._joinTick(); }
+      try{ this._draw(now,T); }catch(err){}
+      this._raf=requestAnimationFrame(loop);
+    };
+    this._raf=requestAnimationFrame(loop);
+    // particles
+    this.parts=[]; for(let i=0;i<70;i++) this.parts.push({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*0.00006,vy:(Math.random()-.5)*0.00006,r:Math.random()*1.4+0.3,a:Math.random()*0.4+0.1});
+  }
+  componentWillUnmount(){ cancelAnimationFrame(this._raf); window.removeEventListener('resize',this._onResize); }
+
+  /* ---------- draw ---------- */
+  _draw(now,T){
+    const c=this.canvas; if(!c) return; const ctx=c.getContext('2d');
+    ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+    ctx.clearRect(0,0,this.cssW,this.cssH);
+    const time=(now-this._t0)/1000;
+    const sel=this.selId>=0; const personal=this.state.view==='personal';
+    let focus=null;
+    if(personal){ focus=this.descSet(this.meId); focus.add(this.meId); for(const a of this.ancestorsOf(this.meId)) focus.add(a); }
+
+    // ambient particles
+    ctx.globalCompositeOperation='lighter';
+    for(const p of this.parts){ p.x+=p.vx; p.y+=p.vy; if(p.x<0)p.x=1; if(p.x>1)p.x=0; if(p.y<0)p.y=1; if(p.y>1)p.y=0; ctx.beginPath(); ctx.arc(p.x*this.cssW,p.y*this.cssH,p.r,0,6.28); ctx.fillStyle='rgba('+this._rgb(T.accent)+','+(p.a*0.5)+')'; ctx.fill(); }
+
+    const dim=(id)=>{ if(sel) return this.chain.has(id)?1:0.2; if(focus) return focus.has(id)?1:0.16; return 1; };
+
+    // edges
+    for(const n of this.nodes){ if(!n.visible||n.parent<0) continue; const p=this.nodes[n.parent]; if(!p.visible) continue;
+      const [x1,y1]=this.worldToScreen(p.x,p.y); const [x2,y2]=this.worldToScreen(n.x,n.y);
+      const onChain=sel && this.chain.has(n.id) && this.chain.has(p.id);
+      const al=Math.min(dim(n.id),dim(p.id));
+      const g=ctx.createLinearGradient(x1,y1,x2,y2);
+      const ca=onChain?T.accent2:this.nodeColor(p), cb=onChain?T.accent2:this.nodeColor(n);
+      g.addColorStop(0,'rgba('+this._rgb(ca)+','+(0.34*al)+')'); g.addColorStop(1,'rgba('+this._rgb(cb)+','+(0.10*al)+')');
+      ctx.strokeStyle=g; ctx.lineWidth=(onChain?2.2:Math.max(0.5,1.4-n.depth*0.12))*Math.max(0.4,this.cam.s);
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      // pulse dot
+      if(al>0.3 && this.cam.s>0.22){ const sp=onChain?0.7:0.28; const t=((time*sp + (n.id%10)*0.13)%1); const px=x1+(x2-x1)*t, py=y1+(y2-y1)*t; const pr=(onChain?2.6:1.7)*Math.max(0.5,this.cam.s);
+        ctx.beginPath(); ctx.arc(px,py,pr,0,6.28); ctx.fillStyle='rgba('+this._rgb(onChain?T.accent2:T.accent)+','+(0.9*al)+')'; ctx.fill();
+        ctx.beginPath(); ctx.arc(px,py,pr*3,0,6.28); ctx.fillStyle='rgba('+this._rgb(onChain?T.accent2:T.accent)+','+(0.12*al)+')'; ctx.fill(); }
+    }
+
+    // node halos
+    for(const n of this.nodes){ if(!n.visible) continue; const [x,y]=this.worldToScreen(n.x,n.y); if(x<-80||x>this.cssW+80||y<-80||y>this.cssH+80) continue;
+      const r=this._rad(n)*this.cam.s; const al=dim(n.id); const col=this.nodeColor(n);
+      const isNew=n.status==='nuevo'; const birth=n.born?Math.min(1,(now-n.born)/900):1;
+      const hr=r*(isNew?3.4:2.4)*(0.85+0.15*Math.sin(time*2+n.id));
+      const hg=ctx.createRadialGradient(x,y,0,x,y,hr);
+      hg.addColorStop(0,'rgba('+this._rgb(col)+','+(0.5*al*birth)+')'); hg.addColorStop(1,'rgba('+this._rgb(col)+',0)');
+      ctx.beginPath(); ctx.arc(x,y,hr,0,6.28); ctx.fillStyle=hg; ctx.fill();
+      // birth ring
+      if(n.born && birth<1){ ctx.beginPath(); ctx.arc(x,y,r+ (1-birth)*38,0,6.28); ctx.strokeStyle='rgba('+this._rgb(T.accent2)+','+(0.55*(1-birth)*al)+')'; ctx.lineWidth=2; ctx.stroke(); }
+    }
+
+    // node cores
+    ctx.globalCompositeOperation='source-over';
+    for(const n of this.nodes){ if(!n.visible) continue; const [x,y]=this.worldToScreen(n.x,n.y); if(x<-80||x>this.cssW+80||y<-80||y>this.cssH+80) continue;
+      const r=this._rad(n)*this.cam.s; const al=dim(n.id); const col=this.nodeColor(n);
+      const isSel=n.id===this.selId, isHover=n.id===this.hoverId, isMe=n.isMe;
+      ctx.globalAlpha=al;
+      // outer ring for me / selected
+      if(isMe||isSel||n.depth===0){ ctx.beginPath(); ctx.arc(x,y,r+4,0,6.28); ctx.strokeStyle=col; ctx.lineWidth=isSel?2.4:1.6; ctx.globalAlpha=al*0.9; ctx.stroke(); ctx.globalAlpha=al; }
+      // core
+      const cg=ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);
+      cg.addColorStop(0, this._mix(col,'#ffffff',0.35)); cg.addColorStop(1,col);
+      ctx.beginPath(); ctx.arc(x,y,r,0,6.28); ctx.fillStyle=cg; ctx.fill();
+      if(n.collapsed){ ctx.fillStyle='rgba(0,0,0,.55)'; ctx.font='bold '+Math.max(8,r*0.9)+'px Space Grotesk'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('+',x,y+0.5); }
+      // label
+      const showLabel=(n.depth<=1 || isSel || isHover || isMe || (n.children.length>=4 && this.cam.s>0.5)) && this.cam.s>0.2 && al>0.45;
+      if(showLabel){ ctx.globalAlpha=al; ctx.font=(n.depth===0?'700 ':'600 ')+Math.max(10,Math.min(15,9+r*0.4))+'px Space Grotesk'; ctx.textAlign='center'; ctx.textBaseline='top';
+        const label=isMe?'TÚ · '+n.name.split(' ')[0]:n.name; const ty=y+r+5;
+        ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillText(label,x+0.6,ty+0.6);
+        ctx.fillStyle=T.text; ctx.fillText(label,x,ty);
+        if(isSel||isHover){ ctx.font='500 10px IBM Plex Mono'; ctx.fillStyle='rgba('+this._rgb(col)+',.95)'; ctx.fillText(n.idCode,x,ty+Math.max(11,r*0.4)+4); }
+      }
+      ctx.globalAlpha=1;
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+  _rgb(hex){ hex=hex.replace('#',''); if(hex.length===3) hex=hex.split('').map(c=>c+c).join(''); const n=parseInt(hex,16); return ((n>>16)&255)+','+((n>>8)&255)+','+(n&255); }
+  _mix(a,b,t){ const pa=this._rgb(a).split(',').map(Number), pb=this._rgb(b).split(',').map(Number); return 'rgb('+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(',')+')'; }
+
+  /* ---------- ui helpers ---------- */
+  _btn(active){ return 'flex:1;text-align:center;padding:7px 0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;'+(active?'background:linear-gradient(135deg,var(--accent,#27e0c8),var(--accent2,#5b9bff));color:#04121a;box-shadow:0 0 16px color-mix(in srgb,var(--accent,#27e0c8) 40%,transparent)':'background:rgba(255,255,255,.05);color:var(--muted,#7c8a92)'); }
+  _pill(active){ return 'padding:7px 14px;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;transition:all .15s;'+(active?'background:linear-gradient(135deg,var(--accent,#27e0c8),var(--accent2,#5b9bff));color:#04121a':'color:var(--muted,#7c8a92)'); }
+  _toast(msg){ this.setState({toast:msg}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:null}),1700); }
+  _buildSel(id){
+    const n=this.nodes[id]; if(!n) return null;
+    const anc=this.ancestorsOf(id).map(a=>({name:this.nodes[a].name.split(' ')[0],pick:()=>this.select(a)}));
+    const kids=n.children.map(k=>this.nodes[k]);
+    const shown=kids.slice(0,8).map(k=>({name:k.name,initials:this.initials(k),color:this.nodeColor(k),roleLabel:k.role,descCount:k.desc||0,pick:()=>this.select(k.id)}));
+    return {
+      name:n.name, initials:this.initials(n), color:this.nodeColor(n), roleLabel:n.role, idCode:n.idCode,
+      depth:n.depth, childrenCount:n.children.length, descCount:n.desc||0, statusLabel:this.statusLabel(n),
+      isMe:!!n.isMe, hasParent:n.parent>=0, parentName:n.parent>=0?this.nodes[n.parent].name:'—',
+      gotoParent:()=>n.parent>=0&&this.select(n.parent),
+      ancestors:anc, hasChildren:n.children.length>0, children:shown,
+      moreChildren:Math.max(0,(n.desc||0)-n.children.length),
+      collapsed:n.collapsed, collapseLabel:n.collapsed?'Expandir rama':'Colapsar rama',
+      toggleCollapse:()=>this.toggleCollapse(id)
+    };
+  }
+
+  renderVals(){
+    const T=this.THEMES[this.state.theme];
+    const total=this.nodes.length;
+    let maxDepth=0; for(const n of this.nodes) if(n.visible&&n.depth>maxDepth) maxDepth=n.depth;
+    const nuevos=this.nodes.filter(n=>n.status==='nuevo').length;
+    const ramas=this.nodes[0].children.length;
+    const me=this.nodes[this.meId];
+
+    // search
+    const q=this.state.query.trim().toLowerCase();
+    let results=[];
+    if(q.length>0){ results=this.nodes.filter(n=>n.name.toLowerCase().includes(q)||n.idCode.toLowerCase().includes(q)).slice(0,6).map(n=>({name:n.name,initials:this.initials(n),color:this.nodeColor(n),roleLabel:n.role,depth:n.depth,idCode:n.idCode,pick:()=>this.select(n.id)})); }
+
+    const themes=Object.keys(this.THEMES).map(k=>({key:k,label:k,c1:this.THEMES[k].accent,c2:this.THEMES[k].accent2,ring:this.state.theme===k?'2px solid '+this.THEMES[k].accent:'2px solid transparent',pick:()=>{ this._applyTheme(k); this.setState({theme:k}); }}));
+
+    return {
+      canvasRef:this.canvasRef, stageRef:this.stageRef,
+      brand:this.props.brandName||'VÉRTICE',
+      regionLabel:this.props.regionLabel||'Gobernación',
+      total, query:this.state.query,
+      onSearch:(e)=>this.setState({query:e.target.value}),
+      hasResults:results.length>0, results,
+      themes,
+      stats:[
+        {value:total, label:'Miembros', color:T.text},
+        {value:maxDepth, label:'Profundidad', color:T.accent},
+        {value:ramas, label:'Ramas', color:T.text},
+        {value:nuevos, label:'Nuevos', color:T.accent2}
+      ],
+      // view toggles
+      styGlobal:this._pill(this.state.view==='global'),
+      styPersonal:this._pill(this.state.view==='personal'),
+      setGlobal:()=>{ this.focus=null; this.clearSel(); this.setState({view:'global'}); this.fitView(true); },
+      setPersonal:()=>{ this.setState({view:'personal'}); this.select(this.meId); this.centerOn(this.meId,0.8); },
+      // layout toggles
+      styRadial:this._btn(this.state.layout==='radial'),
+      styTree:this._btn(this.state.layout==='tree'),
+      styForce:this._btn(this.state.layout==='force'),
+      setRadial:()=>{ this.mode='radial'; this.setState({layout:'radial'}); this._layout(false); setTimeout(()=>this.fitView(true),60); },
+      setTree:()=>{ this.mode='tree'; this.setState({layout:'tree'}); this._layout(false); setTimeout(()=>this.fitView(true),60); },
+      setForce:()=>{ this.mode='force'; this.setState({layout:'force'}); this._layout(false); setTimeout(()=>this.fitView(true),60); },
+      fitView:()=>this.fitView(true),
+      // live
+      live:this.state.live, liveLabel:this.state.live?'En vivo':'Pausado',
+      liveColor:this.state.live?'var(--accent,#27e0c8)':'var(--muted,#7c8a92)',
+      toggleLive:()=>this.setState({live:!this.state.live}),
+      // selection
+      selected:this.state.selectedId>=0, sel:this.state.selectedId>=0?this._buildSel(this.state.selectedId):null,
+      clearSel:()=>this.clearSel(),
+      // share
+      shareOpen:this.state.shareOpen,
+      openShare:()=>this.setState({shareOpen:true}),
+      closeShare:()=>this.setState({shareOpen:false}),
+      stop:(e)=>e.stopPropagation(),
+      me:{ name:me.name, initials:this.initials(me), roleLabel:me.role, idCode:me.idCode, descCount:me.desc||0, link:'vertice.red/unirse/'+me.idCode },
+      copyId:()=>{ try{navigator.clipboard.writeText(me.idCode);}catch(e){} this._toast('ID copiado: '+me.idCode); },
+      copyLink:()=>{ try{navigator.clipboard.writeText('https://vertice.red/unirse/'+me.idCode);}catch(e){} this._toast('Link de invitación copiado'); },
+      simulateJoin:()=>{ this.added=Math.max(0,this.added-1); this._spawn(me); this.setState({shareOpen:false,view:'personal'}); this.select(this.meId); this._toast('¡Nuevo adherido en tu red!'); },
+      toast:this.state.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
