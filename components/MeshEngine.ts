@@ -63,6 +63,8 @@ export class MeshEngine {
   private moved = 0;
   private last = { x:0, y:0 };
   private hoverId = -1;
+  private _ptrs = new Map<number, {x:number;y:number}>();
+  private _pinch = { dist:0, scale:1, cx:0, cy:0, camX:0, camY:0 };
   private chain = new Set<number>();
   private _t0 = 0;
   private cssW = 1280;
@@ -565,14 +567,50 @@ export class MeshEngine {
 
   private _wire(): void {
     const c = this.canvas;
-    c.addEventListener('pointerdown', e => {
+
+    c.addEventListener('pointerdown', (e) => {
       c.setPointerCapture(e.pointerId);
-      this.dragging = true; this.moved = 0;
-      this.last = { x: e.clientX, y: e.clientY };
-      c.style.cursor = 'grabbing';
+      this._ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (this._ptrs.size === 1) {
+        this.dragging = true; this.moved = 0;
+        this.last = { x: e.clientX, y: e.clientY };
+        c.style.cursor = 'grabbing';
+      } else if (this._ptrs.size === 2) {
+        this.dragging = false;
+        const pts = [...this._ptrs.values()];
+        const r = c.getBoundingClientRect();
+        this._pinch.dist  = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        this._pinch.scale = this.cam.s;
+        this._pinch.cx    = (pts[0].x + pts[1].x) / 2 - r.left;
+        this._pinch.cy    = (pts[0].y + pts[1].y) / 2 - r.top;
+        this._pinch.camX  = this.cam.x;
+        this._pinch.camY  = this.cam.y;
+      }
     });
-    c.addEventListener('pointermove', e => {
+
+    c.addEventListener('pointermove', (e) => {
+      this._ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const r = c.getBoundingClientRect();
+
+      if (this._ptrs.size >= 2) {
+        const pts = [...this._ptrs.values()];
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        const cx   = (pts[0].x + pts[1].x) / 2 - r.left;
+        const cy   = (pts[0].y + pts[1].y) / 2 - r.top;
+        if (this._pinch.dist > 0) {
+          const f  = dist / this._pinch.dist;
+          const ns = Math.max(0.08, Math.min(3.2, this._pinch.scale * f));
+          const wx = (this._pinch.cx - this._pinch.camX) / this._pinch.scale;
+          const wy = (this._pinch.cy - this._pinch.camY) / this._pinch.scale;
+          this.cam.s = ns;
+          this.cam.x = cx - wx * ns;
+          this.cam.y = cy - wy * ns;
+          this.camGoal = { ...this.cam };
+        }
+        return;
+      }
+
       const mx = e.clientX - r.left, my = e.clientY - r.top;
       if (this.dragging) {
         const dx = e.clientX - this.last.x, dy = e.clientY - this.last.y;
@@ -585,27 +623,43 @@ export class MeshEngine {
         if (h !== this.hoverId) { this.hoverId = h; c.style.cursor = h >= 0 ? 'pointer' : 'grab'; }
       }
     });
+
     const up = (e: PointerEvent) => {
-      if (!this.dragging) return;
-      this.dragging = false; c.style.cursor = 'grab';
-      if (this.moved < 6) {
-        const r = c.getBoundingClientRect();
-        const h = this._hit(e.clientX - r.left, e.clientY - r.top);
-        if (h >= 0) this.select(h); else this.clearSel();
+      this._ptrs.delete(e.pointerId);
+      if (this._ptrs.size === 0) {
+        if (this.dragging && this.moved < 8) {
+          const r = c.getBoundingClientRect();
+          const h = this._hit(e.clientX - r.left, e.clientY - r.top);
+          if (h >= 0) this.select(h); else this.clearSel();
+        }
+        this.dragging = false;
+        this._pinch.dist = 0;
+        c.style.cursor = 'grab';
+      } else if (this._ptrs.size === 1) {
+        // Lift second finger → back to pan
+        const [ptr] = this._ptrs.values();
+        this.last = { x: ptr.x, y: ptr.y };
+        this.dragging = true; this.moved = 8;
+        this._pinch.dist = 0;
       }
     };
     c.addEventListener('pointerup', up);
-    c.addEventListener('pointercancel', () => { this.dragging = false; });
+    c.addEventListener('pointercancel', (e) => {
+      this._ptrs.delete(e.pointerId);
+      if (this._ptrs.size === 0) { this.dragging = false; this._pinch.dist = 0; }
+    });
+
     c.addEventListener('wheel', e => {
       e.preventDefault();
       const r = c.getBoundingClientRect();
       const mx = e.clientX - r.left, my = e.clientY - r.top;
-      const f = Math.exp(-e.deltaY * 0.0014);
+      const f  = Math.exp(-e.deltaY * 0.0014);
       const ns = Math.max(0.08, Math.min(3.2, this.cam.s * f));
       const wx = (mx - this.cam.x) / this.cam.s, wy = (my - this.cam.y) / this.cam.s;
       this.cam.s = ns; this.cam.x = mx - wx * ns; this.cam.y = my - wy * ns;
       this.camGoal = { ...this.cam };
     }, { passive: false });
+
     this._resizeHandler = () => this._resize();
     window.addEventListener('resize', this._resizeHandler);
   }
