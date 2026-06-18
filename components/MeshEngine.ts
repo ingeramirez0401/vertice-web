@@ -578,7 +578,7 @@ export class MeshEngine {
         c.style.cursor = 'grabbing';
       } else if (this._ptrs.size === 2) {
         this.dragging = false;
-        const pts = [...this._ptrs.values()];
+        const pts = Array.from(this._ptrs.values());
         const r = c.getBoundingClientRect();
         this._pinch.dist  = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
         this._pinch.scale = this.cam.s;
@@ -594,7 +594,7 @@ export class MeshEngine {
       const r = c.getBoundingClientRect();
 
       if (this._ptrs.size >= 2) {
-        const pts = [...this._ptrs.values()];
+        const pts = Array.from(this._ptrs.values());
         const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
         const cx   = (pts[0].x + pts[1].x) / 2 - r.left;
         const cy   = (pts[0].y + pts[1].y) / 2 - r.top;
@@ -637,7 +637,7 @@ export class MeshEngine {
         c.style.cursor = 'grab';
       } else if (this._ptrs.size === 1) {
         // Lift second finger → back to pan
-        const [ptr] = this._ptrs.values();
+        const ptr = Array.from(this._ptrs.values())[0];
         this.last = { x: ptr.x, y: ptr.y };
         this.dragging = true; this.moved = 8;
         this._pinch.dist = 0;
