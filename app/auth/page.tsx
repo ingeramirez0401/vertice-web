@@ -34,7 +34,7 @@ function AuthForm() {
   };
 
   const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'11px 14px', color:'#dbeee9', fontSize:14, width:'100%', outline:'none', fontFamily:"'Space Grotesk',sans-serif" } as React.CSSProperties;
-  const active = { background:'linear-gradient(135deg,#27e0c8,#5b9bff)', color:'#04121a', border:'none', cursor:'pointer', fontWeight:700 };
+  const active = { background:'linear-gradient(135deg,#27e0c8,#5b9bff)', color:'#04121a', cursor:'pointer', fontWeight:700 };
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, #05070d 72%)', fontFamily:"'Space Grotesk',sans-serif", color:'#dbeee9' }}>
