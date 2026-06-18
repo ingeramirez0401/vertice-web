@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key') || request.nextUrl.searchParams.get('key');
   if (apiKey !== process.env.EXPORT_API_KEY) {

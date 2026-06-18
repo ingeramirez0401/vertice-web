@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getRedis } from '@/lib/redis';
 
+export const dynamic = 'force-dynamic';
+
 const CACHE_KEY = 'vertice:stats';
 const CACHE_TTL = 60;
 

@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
 import JoinClient from './JoinClient';
 
+export const dynamic = 'force-dynamic';
+
 interface Props { params: Promise<{ code: string }> }
 
 export default async function UnirsePage({ params }: Props) {
