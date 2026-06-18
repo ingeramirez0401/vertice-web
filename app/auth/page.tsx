@@ -50,7 +50,7 @@ function AuthForm() {
           <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.05)', borderRadius:10, padding:4 }}>
             {(['login','signup'] as const).map(t => (
               <button key={t} onClick={() => { setTab(t); setError(null); setInfo(null); }}
-                style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none', fontSize:13, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:'#7c8a92' }) }}>
+                style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:'#7c8a92', fontWeight:600 }) }}>
                 {t === 'login' ? 'Iniciar sesión' : 'Registrarse'}
               </button>
             ))}
@@ -71,7 +71,7 @@ function AuthForm() {
           {info  && <div style={{ fontSize:12.5, color:'#27e0c8', background:'rgba(39,224,200,.1)', border:'1px solid rgba(39,224,200,.2)', borderRadius:9, padding:'10px 14px' }}>{info}</div>}
 
           <button type="submit" disabled={loading}
-            style={{ height:46, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', gap:9, cursor: loading ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:14, fontFamily:"'Space Grotesk',sans-serif", border:'none', ...active, opacity: loading ? 0.7 : 1, marginTop:4 }}>
+            style={{ height:46, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', gap:9, cursor: loading ? 'not-allowed' : 'pointer', fontSize:14, fontFamily:"'Space Grotesk',sans-serif", border:'none', ...active, opacity: loading ? 0.7 : 1, marginTop:4 }}>
             {loading ? (
               <span style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <span style={{ width:16, height:16, border:'2px solid #04121a', borderTopColor:'transparent', borderRadius:'50%', animation:'vspin 1s linear infinite', display:'inline-block' }} />

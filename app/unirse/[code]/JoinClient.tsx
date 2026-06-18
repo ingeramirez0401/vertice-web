@@ -103,12 +103,12 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               </div>
               {userId ? (
                 <button onClick={handleAlreadyLoggedIn} disabled={loading}
-                  style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, fontWeight:700, border:'none', ...active, opacity: loading ? 0.7 : 1 }}>
+                  style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active, opacity: loading ? 0.7 : 1 }}>
                   {loading ? 'Procesando…' : 'Unirme ahora'}
                 </button>
               ) : (
                 <button onClick={() => setStep('auth')}
-                  style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, fontWeight:700, border:'none', ...active }}>
+                  style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active }}>
                   Crear cuenta y unirme ⟢
                 </button>
               )}
@@ -130,7 +130,7 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.05)', borderRadius:10, padding:4, marginBottom:4 }}>
                 {(['signup','login'] as const).map(t => (
                   <button key={t} type="button" onClick={() => { setTab(t); setError(null); }}
-                    style={{ flex:1, padding:'7px 0', borderRadius:8, border:'none', fontSize:12.5, fontWeight:600, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:S.muted }) }}>
+                    style={{ flex:1, padding:'7px 0', borderRadius:8, fontSize:12.5, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', border:'none', color:S.muted, fontWeight:600 }) }}>
                     {t === 'signup' ? 'Registrarse' : 'Ya tengo cuenta'}
                   </button>
                 ))}
@@ -154,7 +154,7 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               {error && <div style={{ fontSize:12.5, color:'#ff6b6b', background:'rgba(255,107,107,.1)', border:'1px solid rgba(255,107,107,.2)', borderRadius:9, padding:'10px 14px' }}>{error}</div>}
 
               <button type="submit" disabled={loading}
-                style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, fontWeight:700, border:'none', ...active, opacity: loading ? 0.7 : 1, marginTop:2 }}>
+                style={{ height:46, borderRadius:12, fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active, opacity: loading ? 0.7 : 1, marginTop:2 }}>
                 {loading ? 'Procesando...' : tab === 'signup' ? 'Crear cuenta y unirme' : 'Entrar y unirme'}
               </button>
 
