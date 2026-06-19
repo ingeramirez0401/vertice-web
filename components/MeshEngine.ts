@@ -24,6 +24,7 @@ export interface GraphNode {
   isMe?: boolean;
   verified?: boolean;
   municipio?: string;
+  cedula?: string;
   _a?: number;
   _b?: number;
 }
