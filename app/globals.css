@@ -15,7 +15,7 @@ html, body {
   background: #05070d;
   overflow: hidden;
   height: 100%;
-  font-family: var(--font-space, 'Space Grotesk', sans-serif);
+  font-family: var(--font-space, 'Plus Jakarta Sans', sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

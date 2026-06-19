@@ -33,11 +33,11 @@ function AuthForm() {
     router.refresh();
   };
 
-  const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'11px 14px', color:'#dbeee9', fontSize:14, width:'100%', outline:'none', fontFamily:"'Space Grotesk',sans-serif" } as React.CSSProperties;
+  const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'11px 14px', color:'#dbeee9', fontSize:14, width:'100%', outline:'none', fontFamily:'inherit' } as React.CSSProperties;
   const active = { background:'linear-gradient(135deg,#27e0c8,#5b9bff)', color:'#04121a', fontWeight:700 } as React.CSSProperties;
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, #05070d 72%)', fontFamily:"'Space Grotesk',sans-serif", color:'#dbeee9' }}>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, #05070d 72%)', fontFamily:'inherit', color:'#dbeee9' }}>
       <div style={{ width:420, maxWidth:'94vw', background:'rgba(9,14,22,.84)', backdropFilter:'blur(20px)', border:'1px solid rgba(120,200,210,.18)', borderRadius:22, overflow:'hidden', boxShadow:'0 30px 90px rgba(0,0,0,.6)' }}>
 
         <div style={{ padding:'28px 28px 0', textAlign:'center' }}>
@@ -50,7 +50,7 @@ function AuthForm() {
           <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.05)', borderRadius:10, padding:4 }}>
             {(['login','signup'] as const).map(t => (
               <button key={t} onClick={() => { setTab(t); setError(null); setInfo(null); }}
-                style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:'#7c8a92', fontWeight:600 }) }}>
+                style={{ flex:1, padding:'8px 0', borderRadius:8, border:'none', fontSize:13, fontFamily:'inherit', cursor:'pointer', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:'#7c8a92', fontWeight:600 }) }}>
                 {t === 'login' ? 'Iniciar sesión' : 'Registrarse'}
               </button>
             ))}
@@ -71,7 +71,7 @@ function AuthForm() {
           {info  && <div style={{ fontSize:12.5, color:'#27e0c8', background:'rgba(39,224,200,.1)', border:'1px solid rgba(39,224,200,.2)', borderRadius:9, padding:'10px 14px' }}>{info}</div>}
 
           <button type="submit" disabled={loading}
-            style={{ height:46, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', gap:9, cursor: loading ? 'not-allowed' : 'pointer', fontSize:14, fontFamily:"'Space Grotesk',sans-serif", border:'none', ...active, opacity: loading ? 0.7 : 1, marginTop:4 }}>
+            style={{ height:46, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', gap:9, cursor: loading ? 'not-allowed' : 'pointer', fontSize:14, fontFamily:'inherit', border:'none', ...active, opacity: loading ? 0.7 : 1, marginTop:4 }}>
             {loading ? (
               <span style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <span style={{ width:16, height:16, border:'2px solid #04121a', borderTopColor:'transparent', borderRadius:'50%', animation:'vspin 1s linear infinite', display:'inline-block' }} />

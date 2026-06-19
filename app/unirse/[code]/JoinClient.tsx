@@ -19,7 +19,7 @@ export default function JoinClient({ code, inviter, userId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'10px 14px', color:'#dbeee9', fontSize:13.5, width:'100%', outline:'none', fontFamily:"'Space Grotesk',sans-serif" } as React.CSSProperties;
+  const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'10px 14px', color:'#dbeee9', fontSize:13.5, width:'100%', outline:'none', fontFamily:'inherit' } as React.CSSProperties;
 
   const doJoin = async (uid: string, fullName: string) => {
     setStep('joining');
@@ -37,8 +37,8 @@ export default function JoinClient({ code, inviter, userId }: Props) {
   const handleAlreadyLoggedIn = async () => {
     if (!userId) { setStep('auth'); return; }
     setLoading(true);
-    const { data: me } = await supabase.from('vtx_members').select('id').eq('user_id', userId).single();
-    if (me) { router.push('/red'); return; }
+    const { data: meRows } = await supabase.from('vtx_members').select('id').eq('user_id', userId).limit(1);
+    if (meRows?.[0]) { router.push('/red'); return; }
     const { data: profile } = await supabase.auth.getUser();
     const n = profile?.user?.email?.split('@')[0] || 'Miembro';
     await doJoin(userId, n);
@@ -57,8 +57,8 @@ export default function JoinClient({ code, inviter, userId }: Props) {
       const { data: { user }, error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message); setLoading(false); return; }
       if (!user) return;
-      const { data: me } = await supabase.from('vtx_members').select('id').eq('user_id', user.id).single();
-      if (me) { router.push('/red'); return; }
+      const { data: meRows } = await supabase.from('vtx_members').select('id').eq('user_id', user.id).limit(1);
+      if (meRows?.[0]) { router.push('/red'); return; }
       await doJoin(user.id, name || email.split('@')[0]);
     }
   };
@@ -67,7 +67,7 @@ export default function JoinClient({ code, inviter, userId }: Props) {
   const active = { background:`linear-gradient(135deg,${S.accent},${S.accent2})`, color:'#04121a', fontWeight:700 } as React.CSSProperties;
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:`radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, ${S.bg} 72%)`, fontFamily:"'Space Grotesk',sans-serif", color:S.text, padding:24 }}>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:`radial-gradient(1200px 820px at 50% 42%, #0b1422 0%, ${S.bg} 72%)`, fontFamily:'inherit', color:S.text, padding:24 }}>
       <div style={{ width:460, maxWidth:'100%', display:'flex', flexDirection:'column', gap:16 }}>
 
         {/* inviter card */}
@@ -103,12 +103,12 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               </div>
               {userId ? (
                 <button onClick={handleAlreadyLoggedIn} disabled={loading}
-                  style={{ height:46, borderRadius:12, border:'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active, opacity: loading ? 0.7 : 1 }}>
+                  style={{ height:46, borderRadius:12, border:'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily:'inherit', fontSize:14, ...active, opacity: loading ? 0.7 : 1 }}>
                   {loading ? 'Procesando…' : 'Unirme ahora'}
                 </button>
               ) : (
                 <button onClick={() => setStep('auth')}
-                  style={{ height:46, borderRadius:12, border:'none', cursor:'pointer', fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active }}>
+                  style={{ height:46, borderRadius:12, border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:14, ...active }}>
                   Crear cuenta y unirme ⟢
                 </button>
               )}
@@ -130,7 +130,7 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,.05)', borderRadius:10, padding:4, marginBottom:4 }}>
                 {(['signup','login'] as const).map(t => (
                   <button key={t} type="button" onClick={() => { setTab(t); setError(null); }}
-                    style={{ flex:1, padding:'7px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:12.5, fontFamily:"'Space Grotesk',sans-serif", transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:S.muted, fontWeight:600 }) }}>
+                    style={{ flex:1, padding:'7px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:12.5, fontFamily:'inherit', transition:'all .15s', ...(tab===t ? active : { background:'transparent', color:S.muted, fontWeight:600 }) }}>
                     {t === 'signup' ? 'Registrarse' : 'Ya tengo cuenta'}
                   </button>
                 ))}
@@ -154,11 +154,11 @@ export default function JoinClient({ code, inviter, userId }: Props) {
               {error && <div style={{ fontSize:12.5, color:'#ff6b6b', background:'rgba(255,107,107,.1)', border:'1px solid rgba(255,107,107,.2)', borderRadius:9, padding:'10px 14px' }}>{error}</div>}
 
               <button type="submit" disabled={loading}
-                style={{ height:46, borderRadius:12, border:'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily:"'Space Grotesk',sans-serif", fontSize:14, ...active, opacity: loading ? 0.7 : 1, marginTop:2 }}>
+                style={{ height:46, borderRadius:12, border:'none', cursor: loading ? 'not-allowed' : 'pointer', fontFamily:'inherit', fontSize:14, ...active, opacity: loading ? 0.7 : 1, marginTop:2 }}>
                 {loading ? 'Procesando...' : tab === 'signup' ? 'Crear cuenta y unirme' : 'Entrar y unirme'}
               </button>
 
-              <button type="button" onClick={() => setStep('preview')} style={{ background:'none', border:'none', color:S.muted, fontSize:12, cursor:'pointer', fontFamily:"'Space Grotesk',sans-serif" }}>← Volver</button>
+              <button type="button" onClick={() => setStep('preview')} style={{ background:'none', border:'none', color:S.muted, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>← Volver</button>
             </form>
           )}
         </div>

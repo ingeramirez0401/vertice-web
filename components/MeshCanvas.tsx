@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MeshEngine, THEMES, ThemeKey, LayoutMode } from './MeshEngine';
+import ProfileModal from './ProfileModal';
 
 interface Props { userId: string; }
 
@@ -30,6 +31,7 @@ export default function MeshCanvas({ userId }: Props) {
   const [selectedId, setSelectedId] = useState(-1);
   const [query,      setQuery]      = useState('');
   const [shareOpen,  setShareOpen]  = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast,      setToast]      = useState<string | null>(null);
   const [themeKey,   setThemeKey]   = useState<ThemeKey>('cian');
@@ -80,13 +82,15 @@ export default function MeshCanvas({ userId }: Props) {
   const handleLive   = () => { const nl = !live; setLive(nl); if (engine) engine.live = nl; };
   const handleClose  = () => { setSelectedId(-1); setSheet('hidden'); engine?.clearSel(); };
 
+  const handleProfile = () => setProfileOpen(true);
+
   const handleShare = async () => {
     if (!meData) return;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title: 'VÉRTICE', text: `Únete a mi red`, url: meData.link });
+        await navigator.share({ title: 'VÉRTICE', text: `Únete a mi red con código ${meData.idCode}`, url: meData.link });
         return;
-      } catch { /* fallback */ }
+      } catch { /* fallback to modal */ }
     }
     setShareOpen(true);
   };
@@ -151,7 +155,7 @@ export default function MeshCanvas({ userId }: Props) {
               <div style={{ width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', border:`1.5px solid var(--accent)`, transform:'rotate(45deg)', boxShadow:`0 0 14px ${T.accent}55` }}>
                 <div style={{ width:7, height:7, background:'var(--accent)' }} />
               </div>
-              <span style={{ fontSize:16, fontWeight:700, letterSpacing:'.3em', paddingLeft:'.3em' }}>VÉRTICE</span>
+              <span style={{ fontSize:16, fontWeight:800, letterSpacing:'.3em', paddingLeft:'.3em', fontFamily:'var(--font-display,var(--font-space,sans-serif))' }}>VÉRTICE</span>
             </div>
             {/* actions */}
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -162,12 +166,10 @@ export default function MeshCanvas({ userId }: Props) {
                   <path d="M10.5 10.5L13 13" stroke="var(--muted)" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
               </div>
-              {meData && (
-                <div onClick={handleShare}
-                  style={{ height:38, padding:'0 14px', borderRadius:11, background:accentGrad, display:'flex', alignItems:'center', gap:7, cursor:'pointer', fontWeight:700, fontSize:13, color:'#04121a' }}>
-                  <span>⟢</span><span>Mi ID</span>
-                </div>
-              )}
+              <div onClick={handleProfile}
+                style={{ height:38, padding:'0 14px', borderRadius:11, background: meData ? accentGrad : 'rgba(255,255,255,.1)', display:'flex', alignItems:'center', gap:7, cursor:'pointer', fontWeight:700, fontSize:13, color: meData ? '#04121a' : 'var(--muted)' }}>
+                <span>⟢</span><span>{meData ? 'Mi ID' : 'Perfil'}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -341,35 +343,14 @@ export default function MeshCanvas({ userId }: Props) {
           </div>
         )}
 
-        {/* ── MOBILE SHARE SHEET ── */}
-        {shareOpen && meData && (
-          <div onClick={() => setShareOpen(false)}
-            style={{ position:'absolute', inset:0, zIndex:50, background:'rgba(0,0,0,.6)', backdropFilter:'blur(6px)', display:'flex', alignItems:'flex-end' }}>
-            <div onClick={e => e.stopPropagation()}
-              style={{ width:'100%', background:`linear-gradient(180deg,#0c1420,#080c14)`, borderRadius:'20px 20px 0 0', border:'1px solid var(--border)', padding:'0 0 var(--safe-b)', animation:'vsheetin .28s cubic-bezier(.32,1,.4,1)' }}>
-              <div style={{ padding:'10px 0', textAlign:'center' }}>
-                <div style={{ width:36, height:4, borderRadius:2, background:'rgba(255,255,255,.25)', display:'inline-block' }} />
-              </div>
-              <div style={{ padding:'0 24px 28px' }}>
-                <div style={{ textAlign:'center', marginBottom:20 }}>
-                  <div style={{ width:56, height:56, margin:'0 auto 10px', borderRadius:'50%', background:accentGrad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:700, color:'#04121a' }}>{meData.initials}</div>
-                  <div style={{ fontSize:17, fontWeight:700 }}>{meData.name}</div>
-                  <div style={{ fontSize:12, color:'var(--accent)', marginTop:3 }}>{meData.roleLabel}</div>
-                </div>
-                <div style={{ fontSize:10, letterSpacing:'.22em', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Tu ID</div>
-                <div onClick={() => { navigator.clipboard.writeText(meData.idCode).catch(() => {}); showToast('ID copiado'); }}
-                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderRadius:13, border:`1px dashed ${T.accent}88`, background:`${T.accent}14`, cursor:'pointer', marginBottom:12 }}>
-                  <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:24, fontWeight:600, letterSpacing:'.14em', color:'var(--accent)' }}>{meData.idCode}</span>
-                  <span style={{ fontSize:11, color:'var(--muted)' }}>⧉ copiar</span>
-                </div>
-                <div onClick={() => { navigator.clipboard.writeText(meData.link).catch(() => {}); showToast('Link copiado'); }}
-                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderRadius:13, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.08)', cursor:'pointer' }}>
-                  <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:12, color:'var(--text)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{meData.link}</span>
-                  <span style={{ fontSize:11, color:'var(--accent)', flexShrink:0, marginLeft:10 }}>⧉</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* ── PROFILE MODAL (mobile) ── */}
+        {profileOpen && (
+          <ProfileModal
+            meData={meData ?? null}
+            themeKey={themeKey}
+            onClose={() => setProfileOpen(false)}
+            onCenterMe={() => { engine?.setView('personal'); setView('personal'); }}
+          />
         )}
 
         {/* toast */}
@@ -405,7 +386,7 @@ export default function MeshCanvas({ userId }: Props) {
             <div style={{ width:9, height:9, background:'var(--accent)', boxShadow:`0 0 12px var(--accent)` }} />
           </div>
           <div style={{ lineHeight:1 }}>
-            <div style={{ fontSize:19, fontWeight:700, letterSpacing:'.34em', paddingLeft:'.34em' }}>VÉRTICE</div>
+            <div style={{ fontSize:19, fontWeight:800, letterSpacing:'.34em', paddingLeft:'.34em', fontFamily:'var(--font-display,var(--font-space,sans-serif))' }}>VÉRTICE</div>
             <div style={{ fontSize:10, letterSpacing:'.26em', color:'var(--muted)', textTransform:'uppercase', marginTop:3 }}>Red de movimiento</div>
           </div>
         </div>
@@ -446,12 +427,10 @@ export default function MeshCanvas({ userId }: Props) {
                 style={{ width:20, height:20, borderRadius:'50%', cursor:'pointer', background:`linear-gradient(135deg,${THEMES[k].accent},${THEMES[k].accent2})`, outline:themeKey===k?`2px solid ${THEMES[k].accent}`:'2px solid transparent', outlineOffset:2, transition:'transform .15s' }} />
             ))}
           </div>
-          {meData && (
-            <div onClick={handleShare}
-              style={{ display:'flex', alignItems:'center', gap:9, height:38, padding:'0 17px', borderRadius:11, cursor:'pointer', fontWeight:600, fontSize:13, color:'#04121a', background:accentGrad, boxShadow:`0 0 22px ${T.accent}66` }}>
-              <span style={{ fontSize:15 }}>⟢</span> Mi ID de adhesión
-            </div>
-          )}
+          <div onClick={handleProfile}
+            style={{ display:'flex', alignItems:'center', gap:9, height:38, padding:'0 17px', borderRadius:11, cursor:'pointer', fontWeight:700, fontSize:13, color: meData ? '#04121a' : T.muted, background: meData ? accentGrad : 'rgba(255,255,255,.07)', border: meData ? 'none' : `1px solid ${T.border}`, boxShadow: meData ? `0 0 22px ${T.accent}55` : 'none' }}>
+            <span style={{ fontSize:15 }}>⟢</span> {meData ? 'Mi ID y perfil' : 'Mi perfil'}
+          </div>
         </div>
       </div>
 
@@ -493,7 +472,7 @@ export default function MeshCanvas({ userId }: Props) {
       <div style={{ position:'absolute', right:20, bottom:20, zIndex:25, display:'flex', gap:9 }}>
         {[{value:stats.total,label:'Miembros',color:'var(--text)'},{value:stats.maxDepth,label:'Profundidad',color:'var(--accent)'},{value:stats.ramas,label:'Ramas',color:'var(--text)'},{value:stats.nuevos,label:'Nuevos',color:'var(--accent2)'}].map(s => (
           <div key={s.label} style={{ background:'var(--panel)', backdropFilter:'blur(14px)', border:'1px solid var(--border)', borderRadius:13, padding:'11px 15px', minWidth:78 }}>
-            <div style={{ fontFamily:'var(--font-mono,monospace)', fontSize:23, fontWeight:600, color:s.color, lineHeight:1 }}>{s.value}</div>
+            <div style={{ fontFamily:'var(--font-display,var(--font-space,sans-serif))', fontSize:26, fontWeight:800, color:s.color, lineHeight:1 }}>{s.value}</div>
             <div style={{ fontSize:9.5, letterSpacing:'.12em', textTransform:'uppercase', color:'var(--muted)', marginTop:5 }}>{s.label}</div>
           </div>
         ))}
@@ -581,36 +560,14 @@ export default function MeshCanvas({ userId }: Props) {
         </div>
       )}
 
-      {/* SHARE MODAL */}
-      {shareOpen && meData && (
-        <div onClick={() => setShareOpen(false)}
-          style={{ position:'absolute', inset:0, zIndex:50, background:'rgba(3,5,9,.72)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, animation:'vpop .2s ease' }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ width:430, maxWidth:'94vw', background:'linear-gradient(180deg,#0c1420,#080c14)', border:'1px solid var(--border)', borderRadius:22, overflow:'hidden', boxShadow:'0 30px 90px rgba(0,0,0,.7)' }}>
-            <div style={{ position:'relative', padding:'26px 26px 22px', textAlign:'center', background:`radial-gradient(420px 180px at 50% -20%,${T.accent}44,transparent)` }}>
-              <div onClick={() => setShareOpen(false)}
-                style={{ position:'absolute', top:16, right:16, width:28, height:28, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'var(--muted)' }}>✕</div>
-              <div style={{ width:64, height:64, margin:'0 auto 14px', borderRadius:'50%', background:accentGrad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, fontWeight:700, color:'#04121a', boxShadow:`0 0 34px ${T.accent}88` }}>{meData.initials}</div>
-              <div style={{ fontSize:13, color:'var(--muted)' }}>Estás invitando como</div>
-              <div style={{ fontSize:20, fontWeight:700, marginTop:2 }}>{meData.name}</div>
-              <div style={{ fontSize:12, color:'var(--accent)', marginTop:3 }}>{meData.roleLabel} · {meData.descCount} personas en tu red</div>
-            </div>
-            <div style={{ padding:'4px 26px 24px' }}>
-              <div style={{ fontSize:10, letterSpacing:'.22em', textTransform:'uppercase', color:'var(--muted)', margin:'14px 0 8px' }}>Tu ID de adhesión</div>
-              <div onClick={() => { navigator.clipboard.writeText(meData.idCode).catch(() => {}); showToast('ID copiado: ' + meData.idCode); }}
-                style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'15px 18px', borderRadius:13, border:`1px dashed ${T.accent}88`, background:`${T.accent}14`, cursor:'pointer' }}>
-                <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:26, fontWeight:600, letterSpacing:'.14em', color:'var(--accent)' }}>{meData.idCode}</span>
-                <span style={{ fontSize:11, color:'var(--muted)' }}>⧉ copiar</span>
-              </div>
-              <div style={{ fontSize:10, letterSpacing:'.22em', textTransform:'uppercase', color:'var(--muted)', margin:'18px 0 8px' }}>Link de invitación</div>
-              <div onClick={() => { navigator.clipboard.writeText(meData.link).catch(() => {}); showToast('Link copiado'); }}
-                style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'12px 16px', borderRadius:13, background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.07)', cursor:'pointer' }}>
-                <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:12.5, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{meData.link}</span>
-                <span style={{ fontSize:11, color:'var(--accent)', flexShrink:0 }}>⧉</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* PROFILE MODAL (desktop) */}
+      {profileOpen && (
+        <ProfileModal
+          meData={meData ?? null}
+          themeKey={themeKey}
+          onClose={() => setProfileOpen(false)}
+          onCenterMe={() => { engine?.setView('personal'); setView('personal'); }}
+        />
       )}
 
       {/* TOAST */}

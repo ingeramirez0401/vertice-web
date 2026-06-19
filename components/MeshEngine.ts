@@ -65,6 +65,7 @@ export class MeshEngine {
   private hoverId = -1;
   private _ptrs = new Map<number, {x:number;y:number}>();
   private _pinch = { dist:0, scale:1, cx:0, cy:0, camX:0, camY:0 };
+  private _uiFont = '"Plus Jakarta Sans", system-ui, sans-serif';
   private chain = new Set<number>();
   private _t0 = 0;
   private cssW = 1280;
@@ -78,6 +79,10 @@ export class MeshEngine {
     this.canvas = canvas;
     this._t0 = performance.now();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    try {
+      const fv = getComputedStyle(document.body).getPropertyValue('--font-space').trim();
+      if (fv) this._uiFont = fv;
+    } catch { /* SSR guard */ }
     this._resize();
     this._wire();
     this.parts = Array.from({ length: 70 }, () => ({
@@ -404,6 +409,8 @@ export class MeshEngine {
       name: me.name, initials: this.initials(me),
       roleLabel: roleForDepth(me.depth),
       idCode: me.idCode, descCount: me.desc || 0,
+      childrenCount: me.children.length,
+      nodeId: me.id,
       link: `${appUrl}/unirse/${me.idCode}`,
     };
   }
@@ -525,14 +532,14 @@ export class MeshEngine {
       ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fillStyle = cg; ctx.fill();
       if (n.collapsed) {
         ctx.fillStyle = 'rgba(0,0,0,.55)';
-        ctx.font = `bold ${Math.max(8, r * 0.9)}px Space Grotesk`;
+        ctx.font = `bold ${Math.max(8, r * 0.9)}px ${this._uiFont}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('+', x, y + 0.5);
       }
       const showLabel = (n.depth <= 1 || isSel || isHover || isMe || (n.children.length >= 4 && this.cam.s > 0.5)) && this.cam.s > 0.2 && al > 0.45;
       if (showLabel) {
         ctx.globalAlpha = al;
-        ctx.font = `${n.depth === 0 ? '700 ' : '600 '}${Math.max(10, Math.min(15, 9 + r * 0.4))}px Space Grotesk`;
+        ctx.font = `${n.depth === 0 ? '700 ' : '600 '}${Math.max(10, Math.min(15, 9 + r * 0.4))}px ${this._uiFont}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'top';
         const label = isMe ? 'TÚ · ' + n.name.split(' ')[0] : n.name;
         const ty = y + r + 5;
