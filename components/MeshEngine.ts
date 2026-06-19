@@ -116,10 +116,11 @@ export class MeshEngine {
       }
     });
 
-    const { data: me } = await supabase
-      .from('vtx_members').select('id').eq('user_id', userId).single();
-    if (me) {
-      const myNode = this.nodes.find(n => n.uid === me.id);
+    const { data: meRows } = await supabase
+      .from('vtx_members').select('id').eq('user_id', userId).limit(1);
+    const meRow = meRows?.[0];
+    if (meRow) {
+      const myNode = this.nodes.find(n => n.uid === meRow.id);
       if (myNode) { myNode.isMe = true; this.meId = myNode.id; }
     }
 

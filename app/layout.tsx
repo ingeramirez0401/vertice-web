@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   title: 'VÉRTICE',
   description: 'Red de movimiento político',
   manifest: '/manifest.json',
+  icons: { icon: '/favicon.svg', apple: '/favicon.svg' },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
