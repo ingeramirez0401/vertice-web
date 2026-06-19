@@ -35,6 +35,21 @@ export interface Theme {
   border: string; panel: string;
 }
 
+export const MUNI_COLORS: Record<string, string> = {
+  'Cúcuta':            '#27e0c8',
+  'Villa del Rosario': '#5b9bff',
+  'Los Patios':        '#b06cff',
+  'Ocaña':             '#ff6b35',
+  'Pamplona':          '#ffd86b',
+  'Tibú':              '#3dff9a',
+  'El Zulia':          '#ff5db0',
+  'Sardinata':         '#8effb4',
+  'Ábrego':            '#ff9b42',
+  'Chinácota':         '#c8ff57',
+  'Puerto Santander':  '#57d4ff',
+  'San Cayetano':      '#ff8fab',
+};
+
 export const THEMES: Record<ThemeKey, Theme> = {
   cian:    { bg:'#05070d',bg2:'#0b1422',accent:'#27e0c8',accent2:'#5b9bff',text:'#dbeee9',muted:'#7c8a92',border:'rgba(120,200,210,.16)',panel:'rgba(9,14,22,.74)' },
   violeta: { bg:'#0a0612',bg2:'#160a26',accent:'#b06cff',accent2:'#ff5db0',text:'#ece4f6',muted:'#8a7d97',border:'rgba(176,108,255,.18)',panel:'rgba(15,9,26,.76)' },
@@ -52,6 +67,7 @@ export class MeshEngine {
   themeKey: ThemeKey = 'cian';
   mode: LayoutMode = 'radial';
   view: 'global' | 'personal' = 'global';
+  colorMode: 'status' | 'municipio' = 'status';
   live = true;
 
   onSelect?: (id: number) => void;
@@ -97,7 +113,7 @@ export class MeshEngine {
   async loadGraph(supabase: SupabaseClient, userId: string): Promise<void> {
     const { data, error } = await supabase
       .from('vtx_members')
-      .select('id,parent_id,full_name,adhesion_code,status,depth,child_count,subtree_size,verified,municipio')
+      .select('id,parent_id,full_name,adhesion_code,status,depth,child_count,subtree_size,verified,municipio,cedula')
       .order('depth', { ascending: true });
 
     if (error || !data?.length) return;
@@ -112,6 +128,7 @@ export class MeshEngine {
         visible: true, collapsed: false, born: 0,
         verified: m.verified ?? false,
         municipio: m.municipio ?? undefined,
+        cedula: m.cedula ?? undefined,
       };
       idx.set(m.id, n);
       return n;
@@ -362,6 +379,10 @@ export class MeshEngine {
   nodeColor(n: GraphNode): string {
     const T = THEMES[this.themeKey];
     if (n.depth === 0) return '#ffd86b';
+    if (this.colorMode === 'municipio') {
+      if (n.municipio && MUNI_COLORS[n.municipio]) return MUNI_COLORS[n.municipio];
+      return T.muted;
+    }
     if (n.status === 'inactivo') return T.bg === '#e9e7df' ? '#9aa39c' : '#3a434c';
     if (n.status === 'nuevo') return T.accent2;
     return T.accent;
@@ -393,6 +414,7 @@ export class MeshEngine {
       name: k.name, initials: this.initials(k), color: this.nodeColor(k),
       roleLabel: roleForDepth(k.depth), descCount: k.desc || 0, nodeId: k.id,
     }));
+    const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
     return {
       name: n.name, initials: this.initials(n), color: this.nodeColor(n),
       roleLabel: roleForDepth(n.depth), idCode: n.idCode,
@@ -403,6 +425,10 @@ export class MeshEngine {
       ancestors: anc, hasChildren: n.children.length > 0, children: shown,
       moreChildren: Math.max(0, (n.desc || 0) - n.children.length),
       collapsed: n.collapsed,
+      municipio: n.municipio ?? null,
+      cedula: n.cedula ? ('****' + n.cedula.slice(-4)) : null,
+      shareLink: `${origin}/unirse/${n.idCode}`,
+      muniColor: n.municipio ? (MUNI_COLORS[n.municipio] ?? null) : null,
     };
   }
 
@@ -418,6 +444,7 @@ export class MeshEngine {
       link: `${appUrl}/unirse/${me.idCode}`,
       verified: me.verified ?? false,
       municipio: me.municipio ?? null,
+      muniColor: me.municipio ? (MUNI_COLORS[me.municipio] ?? null) : null,
     };
   }
 

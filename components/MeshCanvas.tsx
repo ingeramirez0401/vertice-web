@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { MeshEngine, THEMES, ThemeKey, LayoutMode } from './MeshEngine';
+import { MeshEngine, THEMES, MUNI_COLORS, ThemeKey, LayoutMode } from './MeshEngine';
 import ProfileModal from './ProfileModal';
 import QuickAddModal from './QuickAddModal';
 import IntelDashboard from './IntelDashboard';
@@ -41,6 +41,7 @@ export default function MeshCanvas({ userId }: Props) {
   const [themeKey,   setThemeKey]   = useState<ThemeKey>('cian');
   const [layout,     setLayout]     = useState<LayoutMode>('radial');
   const [view,       setView]       = useState<'global' | 'personal'>('global');
+  const [colorMode,  setColorMode]  = useState<'status' | 'municipio'>('status');
   const [live,       setLive]       = useState(true);
   // mobile bottom-sheet: 'hidden' | 'peek' | 'full'
   const [sheet,      setSheet]      = useState<'hidden'|'peek'|'full'>('hidden');
@@ -80,9 +81,10 @@ export default function MeshCanvas({ userId }: Props) {
   const selData      = useMemo(() => engine && selectedId >= 0 ? engine.buildSel(selectedId) : null, [selectedId, tick, engine]); // eslint-disable-line react-hooks/exhaustive-deps
   const meData       = useMemo(() => engine?.buildMe(), [tick, engine]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTheme  = (k: ThemeKey)   => { setThemeKey(k); engine?.setTheme(k); };
-  const handleLayout = (m: LayoutMode) => { setLayout(m);   engine?.setMode(m); };
-  const handleView   = (v: 'global'|'personal') => { setView(v); engine?.setView(v); };
+  const handleTheme     = (k: ThemeKey)   => { setThemeKey(k); engine?.setTheme(k); };
+  const handleLayout    = (m: LayoutMode) => { setLayout(m);   engine?.setMode(m); };
+  const handleView      = (v: 'global'|'personal') => { setView(v); engine?.setView(v); };
+  const handleColorMode = (cm: 'status'|'municipio') => { setColorMode(cm); if (engine) engine.colorMode = cm; };
   const handleLive   = () => { const nl = !live; setLive(nl); if (engine) engine.live = nl; };
   const handleClose  = () => { setSelectedId(-1); setSheet('hidden'); engine?.clearSel(); };
 
@@ -200,6 +202,9 @@ export default function MeshCanvas({ userId }: Props) {
             <div style={{ width:1, height:32, background:'var(--border)', margin:'0 2px' }} />
             <div onClick={() => engine?.fitView(true)}
               style={{ width:38, height:38, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:16, color:'var(--text)' }}>⤢</div>
+            <div onClick={() => handleColorMode(colorMode === 'status' ? 'municipio' : 'status')}
+              title={colorMode === 'municipio' ? 'Color por municipio (activo)' : 'Color por estado'}
+              style={{ width:38, height:38, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:14, background: colorMode === 'municipio' ? 'rgba(39,224,200,.18)' : 'transparent', color: colorMode === 'municipio' ? 'var(--accent)' : 'var(--muted)' }}>🏙</div>
             <div onClick={handleLive}
               style={{ width:38, height:38, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
               <span style={{ width:10, height:10, borderRadius:'50%', background: live ? 'var(--accent)' : 'var(--muted)', boxShadow: live ? `0 0 8px var(--accent)` : 'none', animation: live ? 'vbreath 1.4s infinite' : 'none' }} />
@@ -257,9 +262,20 @@ export default function MeshCanvas({ userId }: Props) {
                   ))}
                 </div>
 
+                {selData.municipio && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--muted)', marginTop:6 }}>
+                    <span style={{ width:8, height:8, borderRadius:'50%', background: selData.muniColor ?? 'var(--accent)', flexShrink:0 }} />
+                    {selData.municipio}
+                    {selData.cedula && <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:10, marginLeft:8 }}>🪪 {selData.cedula}</span>}
+                  </div>
+                )}
+                <div onClick={() => { navigator.clipboard.writeText(selData.shareLink).catch(()=>{}); showToast('Link copiado ✓'); }}
+                  style={{ marginTop:9, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'10px 0', borderRadius:10, background:`rgba(39,224,200,.12)`, border:`1px solid rgba(39,224,200,.35)`, color:'var(--accent)', cursor:'pointer', fontSize:12.5, fontWeight:600 }}>
+                  ⧉ Copiar link de invitación
+                </div>
                 {sheet === 'peek' && (
                   <div onClick={() => setSheet('full')}
-                    style={{ marginTop:10, textAlign:'center', fontSize:12, color:'var(--accent)', cursor:'pointer', padding:'8px 0' }}>
+                    style={{ marginTop:8, textAlign:'center', fontSize:12, color:'var(--accent)', cursor:'pointer', padding:'6px 0' }}>
                     Ver linaje completo ↑
                   </div>
                 )}
@@ -474,14 +490,28 @@ export default function MeshCanvas({ userId }: Props) {
             <div onClick={() => handleView('global')} style={pill(view==='global')}>Global</div>
             <div onClick={() => handleView('personal')} style={pill(view==='personal')}>La mía</div>
           </div>
-          <div style={{ fontSize:10, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Estado</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:11.5 }}>
-            {[{col:'var(--accent)',l:'Activo'},{col:'var(--accent2)',l:'Nuevo ingreso'},{col:'#3a434c',l:'Inactivo'}].map(({col,l}) => (
-              <div key={l} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={{ width:9, height:9, borderRadius:'50%', background:col, boxShadow:`0 0 8px ${col}`, flexShrink:0 }} />{l}
-              </div>
-            ))}
+          <div style={{ fontSize:10, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Color nodos</div>
+          <div style={{ display:'flex', gap:6, marginBottom:12 }}>
+            <div onClick={() => handleColorMode('status')} style={pill(colorMode==='status')}>Estado</div>
+            <div onClick={() => handleColorMode('municipio')} style={pill(colorMode==='municipio')}>Municipio</div>
           </div>
+          {colorMode === 'status' ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:11.5 }}>
+              {[{col:'var(--accent)',l:'Activo'},{col:'var(--accent2)',l:'Nuevo ingreso'},{col:'#3a434c',l:'Inactivo'}].map(({col,l}) => (
+                <div key={l} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ width:9, height:9, borderRadius:'50%', background:col, boxShadow:`0 0 8px ${col}`, flexShrink:0 }} />{l}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:5, fontSize:10.5, maxHeight:160, overflowY:'auto' }}>
+              {Object.entries(MUNI_COLORS).map(([m, col]) => (
+                <div key={m} style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <span style={{ width:9, height:9, borderRadius:'50%', background:col, flexShrink:0 }} />{m}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -539,6 +569,24 @@ export default function MeshCanvas({ userId }: Props) {
                 <div style={{ fontSize:9.5, textTransform:'uppercase', letterSpacing:'.1em', color:'var(--muted)', marginTop:3 }}>{label}</div>
               </div>
             ))}
+          </div>
+          {/* municipio + cedula + share link */}
+          {(selData.municipio || selData.cedula) && (
+            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'9px 20px', background:'rgba(255,255,255,.03)', borderBottom:`1px solid var(--border)` }}>
+              {selData.municipio && (
+                <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5 }}>
+                  <span style={{ width:8, height:8, borderRadius:'50%', background: selData.muniColor ?? 'var(--accent)', flexShrink:0 }} />
+                  <span style={{ color:'var(--text)' }}>{selData.municipio}</span>
+                </div>
+              )}
+              {selData.cedula && (
+                <span style={{ fontFamily:'var(--font-mono,monospace)', fontSize:11, color:'var(--muted)' }}>🪪 {selData.cedula}</span>
+              )}
+            </div>
+          )}
+          <div onClick={() => { navigator.clipboard.writeText(selData.shareLink).catch(()=>{}); showToast('Link copiado ✓'); }}
+            style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 20px', cursor:'pointer', borderBottom:`1px solid var(--border)`, color:'var(--accent)', fontSize:12, fontWeight:600 }}>
+            ⧉ Copiar link de {selData.name.split(' ')[0]}
           </div>
           <div style={{ padding:'14px 20px 6px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
