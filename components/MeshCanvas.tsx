@@ -4,6 +4,8 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MeshEngine, THEMES, ThemeKey, LayoutMode } from './MeshEngine';
 import ProfileModal from './ProfileModal';
+import QuickAddModal from './QuickAddModal';
+import IntelDashboard from './IntelDashboard';
 
 interface Props { userId: string; }
 
@@ -30,9 +32,11 @@ export default function MeshCanvas({ userId }: Props) {
   const [tick,       setTick]       = useState(0);
   const [selectedId, setSelectedId] = useState(-1);
   const [query,      setQuery]      = useState('');
-  const [shareOpen,  setShareOpen]  = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [shareOpen,    setShareOpen]    = useState(false);
+  const [profileOpen,  setProfileOpen]  = useState(false);
+  const [searchOpen,   setSearchOpen]   = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [intelOpen,    setIntelOpen]    = useState(false);
   const [toast,      setToast]      = useState<string | null>(null);
   const [themeKey,   setThemeKey]   = useState<ThemeKey>('cian');
   const [layout,     setLayout]     = useState<LayoutMode>('radial');
@@ -158,7 +162,15 @@ export default function MeshCanvas({ userId }: Props) {
               <span style={{ fontSize:16, fontWeight:800, letterSpacing:'.3em', paddingLeft:'.3em', fontFamily:'var(--font-display,var(--font-space,sans-serif))' }}>VÉRTICE</span>
             </div>
             {/* actions */}
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div onClick={() => setIntelOpen(true)}
+                style={{ width:38, height:38, borderRadius:11, background:'var(--panel)', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', backdropFilter:'blur(12px)', fontSize:16 }}
+                title="Tablero electoral">📊</div>
+              {meData && (
+                <div onClick={() => setQuickAddOpen(true)}
+                  style={{ width:38, height:38, borderRadius:11, background:`${T.accent}22`, border:`1px solid ${T.accent}55`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:16 }}
+                  title="Captar simpatizante">+</div>
+              )}
               <div onClick={() => setSearchOpen(true)}
                 style={{ width:38, height:38, borderRadius:11, background:'var(--panel)', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', backdropFilter:'blur(12px)' }}>
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
@@ -353,6 +365,16 @@ export default function MeshCanvas({ userId }: Props) {
           />
         )}
 
+        {/* ── QUICK ADD + INTEL (mobile) ── */}
+        {quickAddOpen && (
+          <QuickAddModal
+            themeKey={themeKey}
+            onClose={() => setQuickAddOpen(false)}
+            onSuccess={(name) => { setQuickAddOpen(false); showToast(`${name} captado ✓`); }}
+          />
+        )}
+        {intelOpen && <IntelDashboard themeKey={themeKey} onClose={() => setIntelOpen(false)} />}
+
         {/* toast */}
         {toast && (
           <div style={{ position:'absolute', left:'50%', bottom: sheet !== 'hidden' ? `calc(${typeof sheetH === 'number' ? sheetH + 'px' : sheetH} + 12px)` : '80px', transform:'translateX(-50%)', zIndex:60, padding:'10px 18px', borderRadius:11, background:'var(--accent)', color:'#04121a', fontWeight:700, fontSize:13, whiteSpace:'nowrap', animation:'vrise .2s ease' }}>{toast}</div>
@@ -419,14 +441,24 @@ export default function MeshCanvas({ userId }: Props) {
           )}
         </div>
 
-        {/* theme + share */}
-        <div style={{ display:'flex', alignItems:'center', gap:14, pointerEvents:'auto' }}>
+        {/* theme + actions */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, pointerEvents:'auto' }}>
           <div style={{ display:'flex', gap:7 }}>
             {THEME_KEYS.map(k => (
               <div key={k} onClick={() => handleTheme(k)} title={k}
                 style={{ width:20, height:20, borderRadius:'50%', cursor:'pointer', background:`linear-gradient(135deg,${THEMES[k].accent},${THEMES[k].accent2})`, outline:themeKey===k?`2px solid ${THEMES[k].accent}`:'2px solid transparent', outlineOffset:2, transition:'transform .15s' }} />
             ))}
           </div>
+          <div onClick={() => setIntelOpen(true)}
+            style={{ display:'flex', alignItems:'center', gap:8, height:38, padding:'0 14px', borderRadius:11, cursor:'pointer', fontWeight:600, fontSize:12.5, color:T.text, background:'rgba(255,255,255,.07)', border:`1px solid ${T.border}` }}>
+            📊 Tablero
+          </div>
+          {meData && (
+            <div onClick={() => setQuickAddOpen(true)}
+              style={{ display:'flex', alignItems:'center', gap:8, height:38, padding:'0 14px', borderRadius:11, cursor:'pointer', fontWeight:700, fontSize:12.5, color:T.accent, background:`${T.accent}18`, border:`1px solid ${T.accent}55` }}>
+              + Captar
+            </div>
+          )}
           <div onClick={handleProfile}
             style={{ display:'flex', alignItems:'center', gap:9, height:38, padding:'0 17px', borderRadius:11, cursor:'pointer', fontWeight:700, fontSize:13, color: meData ? '#04121a' : T.muted, background: meData ? accentGrad : 'rgba(255,255,255,.07)', border: meData ? 'none' : `1px solid ${T.border}`, boxShadow: meData ? `0 0 22px ${T.accent}55` : 'none' }}>
             <span style={{ fontSize:15 }}>⟢</span> {meData ? 'Mi ID y perfil' : 'Mi perfil'}
@@ -569,6 +601,16 @@ export default function MeshCanvas({ userId }: Props) {
           onCenterMe={() => { engine?.setView('personal'); setView('personal'); }}
         />
       )}
+
+      {/* QUICK ADD + INTEL (desktop) */}
+      {quickAddOpen && (
+        <QuickAddModal
+          themeKey={themeKey}
+          onClose={() => setQuickAddOpen(false)}
+          onSuccess={(name) => { setQuickAddOpen(false); showToast(`${name} captado ✓`); }}
+        />
+      )}
+      {intelOpen && <IntelDashboard themeKey={themeKey} onClose={() => setIntelOpen(false)} />}
 
       {/* TOAST */}
       {toast && (

@@ -5,27 +5,42 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 interface Inviter { full_name: string; role: string; subtree_size: number; depth: number; }
-interface Props { code: string; inviter: Inviter; userId: string | null; }
+interface Municipio { codigo: string; nombre: string; }
+interface Props { code: string; inviter: Inviter; userId: string | null; municipios: Municipio[]; }
 
-export default function JoinClient({ code, inviter, userId }: Props) {
+export default function JoinClient({ code, inviter, userId, municipios }: Props) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [step, setStep] = useState<'preview' | 'auth' | 'joining'>('preview');
-  const [tab, setTab] = useState<'login' | 'signup'>('signup');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [step,      setStep]      = useState<'preview' | 'auth' | 'joining'>('preview');
+  const [tab,       setTab]       = useState<'login' | 'signup'>('signup');
+  const [name,      setName]      = useState('');
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [cedula,    setCedula]    = useState('');
+  const [phone,     setPhone]     = useState('');
+  const [muniCode,  setMuniCode]  = useState('');
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
 
   const inp = { background:'rgba(255,255,255,.06)', border:'1px solid rgba(120,200,210,.2)', borderRadius:10, padding:'10px 14px', color:'#dbeee9', fontSize:13.5, width:'100%', outline:'none', fontFamily:'inherit' } as React.CSSProperties;
 
   const doJoin = async (uid: string, fullName: string) => {
     setStep('joining');
-    const { error: err } = await supabase.rpc('vtx_join_with_code', { p_code: code, p_name: fullName });
+    const { error: err } = await supabase.rpc('vtx_join_with_code', {
+      p_code:             code,
+      p_name:             fullName,
+      p_cedula:           cedula.trim()  || null,
+      p_phone:            phone.trim()   || null,
+      p_municipio_codigo: muniCode       || null,
+    });
     if (err) {
-      setError(err.message.includes('ya pertenece') ? 'Este usuario ya pertenece a la red.' : err.message);
+      const msg = err.message.includes('ya pertenece')
+        ? 'Este usuario ya pertenece a la red.'
+        : err.message.includes('ya está registrada')
+        ? 'Esta cédula ya está registrada en la red.'
+        : err.message;
+      setError(msg);
       setStep('auth');
       setLoading(false);
       return;
@@ -150,6 +165,34 @@ export default function JoinClient({ code, inviter, userId }: Props) {
                 <label style={{ fontSize:10.5, letterSpacing:'.18em', textTransform:'uppercase', color:S.muted, display:'block', marginBottom:5 }}>Contraseña</label>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inp} />
               </div>
+
+              {tab === 'signup' && (
+                <>
+                  <div style={{ height:1, background:'rgba(255,255,255,.07)', margin:'2px 0' }} />
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                    <div>
+                      <label style={{ fontSize:10.5, letterSpacing:'.18em', textTransform:'uppercase', color:S.muted, display:'block', marginBottom:5 }}>Cédula</label>
+                      <input value={cedula} onChange={e => setCedula(e.target.value)} placeholder="1001234567" inputMode="numeric" style={inp} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize:10.5, letterSpacing:'.18em', textTransform:'uppercase', color:S.muted, display:'block', marginBottom:5 }}>Celular</label>
+                      <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="3175551234" inputMode="tel" style={inp} />
+                    </div>
+                  </div>
+                  {municipios.length > 0 && (
+                    <div>
+                      <label style={{ fontSize:10.5, letterSpacing:'.18em', textTransform:'uppercase', color:S.muted, display:'block', marginBottom:5 }}>Municipio</label>
+                      <select value={muniCode} onChange={e => setMuniCode(e.target.value)}
+                        style={{ ...inp, appearance:'none', WebkitAppearance:'none', cursor:'pointer' }}>
+                        <option value="">Seleccionar...</option>
+                        {municipios.map(m => (
+                          <option key={m.codigo} value={m.codigo}>{m.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
 
               {error && <div style={{ fontSize:12.5, color:'#ff6b6b', background:'rgba(255,107,107,.1)', border:'1px solid rgba(255,107,107,.2)', borderRadius:9, padding:'10px 14px' }}>{error}</div>}
 

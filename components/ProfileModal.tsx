@@ -45,6 +45,8 @@ interface MeData {
   name: string; initials: string; roleLabel: string;
   idCode: string; descCount: number; childrenCount: number;
   link: string; nodeId: number;
+  verified?: boolean;
+  municipio?: string | null;
 }
 
 interface Props {
@@ -114,9 +116,17 @@ export default function ProfileModal({ meData, themeKey, onClose, onCenterMe }: 
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.1, fontFamily: 'var(--font-display, var(--font-space, sans-serif))' }}>{meData.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.1, fontFamily: 'var(--font-display, var(--font-space, sans-serif))' }}>{meData.name}</span>
+              {meData.verified && (
+                <span title="Identidad verificada" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'rgba(39,224,200,.18)', color: '#27e0c8', letterSpacing: '.06em' }}>✓ Verificado</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: `${lv.color}30`, color: lv.color, fontFamily: 'var(--font-display, var(--font-space, sans-serif))' }}>{lv.icon} {lv.name}</span>
+              {meData.municipio && (
+                <span style={{ fontSize: 10.5, color: T.muted }}>📍 {meData.municipio}</span>
+              )}
             </div>
 
             {/* Level progress bar */}

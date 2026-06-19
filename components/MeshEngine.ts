@@ -22,6 +22,8 @@ export interface GraphNode {
   collapsed: boolean;
   born: number;
   isMe?: boolean;
+  verified?: boolean;
+  municipio?: string;
   _a?: number;
   _b?: number;
 }
@@ -40,7 +42,7 @@ export const THEMES: Record<ThemeKey, Theme> = {
   claro:   { bg:'#e9e7df',bg2:'#f3f1ea',accent:'#0c8f78',accent2:'#3a6df0',text:'#1a2620',muted:'#6a766f',border:'rgba(12,40,33,.16)',panel:'rgba(255,255,255,.78)' },
 };
 
-const ROLES = ['Candidato','Coordinador General','Líder Zonal','Líder de Barrio','Promotor','Simpatizante'];
+const ROLES = ['Candidato','Coordinador Municipal','Líder de Puesto','Promotor','Simpatizante'];
 export const roleForDepth = (d: number) => ROLES[Math.min(d, ROLES.length - 1)];
 
 export class MeshEngine {
@@ -95,7 +97,7 @@ export class MeshEngine {
   async loadGraph(supabase: SupabaseClient, userId: string): Promise<void> {
     const { data, error } = await supabase
       .from('vtx_members')
-      .select('id,parent_id,full_name,adhesion_code,status,depth,child_count,subtree_size')
+      .select('id,parent_id,full_name,adhesion_code,status,depth,child_count,subtree_size,verified,municipio')
       .order('depth', { ascending: true });
 
     if (error || !data?.length) return;
@@ -108,6 +110,8 @@ export class MeshEngine {
         status: m.status as NodeStatus, desc: m.subtree_size ?? 0,
         x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0,
         visible: true, collapsed: false, born: 0,
+        verified: m.verified ?? false,
+        municipio: m.municipio ?? undefined,
       };
       idx.set(m.id, n);
       return n;
@@ -412,6 +416,8 @@ export class MeshEngine {
       childrenCount: me.children.length,
       nodeId: me.id,
       link: `${appUrl}/unirse/${me.idCode}`,
+      verified: me.verified ?? false,
+      municipio: me.municipio ?? null,
     };
   }
 
