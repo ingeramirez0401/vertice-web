@@ -93,18 +93,24 @@ export class MeshEngine {
   private parts: Array<{x:number;y:number;vx:number;vy:number;r:number;a:number}> = [];
   private _raf = 0;
   private _resizeHandler?: () => void;
+  private _isMobile = false;
+  private _fpsCap = 60;
+  private _lastDraw = 0;
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this._t0 = performance.now();
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this._isMobile = window.innerWidth < 768;
+    this.dpr = Math.min(window.devicePixelRatio || 1, this._isMobile ? 1.5 : 2);
+    this._fpsCap = this._isMobile ? 30 : 60;
     try {
       const fv = getComputedStyle(document.body).getPropertyValue('--font-space').trim();
       if (fv) this._uiFont = fv;
     } catch { /* SSR guard */ }
     this._resize();
     this._wire();
-    this.parts = Array.from({ length: 70 }, () => ({
+    const partCount = this._isMobile ? 20 : 70;
+    this.parts = Array.from({ length: partCount }, () => ({
       x: Math.random(), y: Math.random(),
       vx: (Math.random() - .5) * 0.00006, vy: (Math.random() - .5) * 0.00006,
       r: Math.random() * 1.4 + 0.3, a: Math.random() * 0.4 + 0.1,
@@ -152,6 +158,12 @@ export class MeshEngine {
     }
 
     this._layout(true);
+    if (this._isMobile) {
+      for (const n of this.nodes) {
+        if (n.children.length > 0 && n.depth >= 3) n.collapsed = true;
+      }
+      this._layout(true);
+    }
     this.fitView(false);
     this.onUpdate?.();
   }
@@ -177,7 +189,11 @@ export class MeshEngine {
   }
 
   startLoop(): void {
+    const interval = 1000 / this._fpsCap;
     const loop = (now: number) => {
+      this._raf = requestAnimationFrame(loop);
+      if (now - this._lastDraw < interval) return;
+      this._lastDraw = now;
       const T = THEMES[this.themeKey];
       this.cam.x += (this.camGoal.x - this.cam.x) * 0.12;
       this.cam.y += (this.camGoal.y - this.cam.y) * 0.12;
@@ -192,7 +208,6 @@ export class MeshEngine {
         }
       }
       try { this._draw(now, T); } catch (_) {}
-      this._raf = requestAnimationFrame(loop);
     };
     this._raf = requestAnimationFrame(loop);
   }
@@ -468,6 +483,9 @@ export class MeshEngine {
     ctx.clearRect(0, 0, this.cssW, this.cssH);
     const time = (now - this._t0) / 1000;
     const sel = this.selId >= 0;
+    const lowZoom = this.cam.s < 0.35;
+    const veryLowZoom = this.cam.s < 0.12;
+    const inView = (x: number, y: number) => x > -120 && x < this.cssW + 120 && y > -120 && y < this.cssH + 120;
     let focus: Set<number> | null = null;
     if (this.view === 'personal' && this.meId >= 0) {
       focus = this.descSet(this.meId);
@@ -475,16 +493,26 @@ export class MeshEngine {
       for (const a of this.ancestorsOf(this.meId)) focus.add(a);
     }
 
-    // ambient particles
-    ctx.globalCompositeOperation = 'lighter';
-    for (const p of this.parts) {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0) p.x = 1; if (p.x > 1) p.x = 0;
-      if (p.y < 0) p.y = 1; if (p.y > 1) p.y = 0;
-      ctx.beginPath();
-      ctx.arc(p.x * this.cssW, p.y * this.cssH, p.r, 0, 6.28);
-      ctx.fillStyle = `rgba(${this._rgb(T.accent)},${p.a * 0.5})`;
-      ctx.fill();
+    // ambient particles — skip at low zoom to save fill ops
+    if (!lowZoom) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of this.parts) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = 1; if (p.x > 1) p.x = 0;
+        if (p.y < 0) p.y = 1; if (p.y > 1) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x * this.cssW, p.y * this.cssH, p.r, 0, 6.28);
+        ctx.fillStyle = `rgba(${this._rgb(T.accent)},${p.a * 0.5})`;
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      // still move particles so they resume naturally when zooming in
+      for (const p of this.parts) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = 1; if (p.x > 1) p.x = 0;
+        if (p.y < 0) p.y = 1; if (p.y > 1) p.y = 0;
+      }
     }
 
     const dim = (id: number): number => {
@@ -494,13 +522,22 @@ export class MeshEngine {
     };
 
     // edges
+    ctx.globalCompositeOperation = 'source-over';
     for (const n of this.nodes) {
       if (!n.visible || n.parent < 0) continue;
       const p = this.nodes[n.parent]; if (!p?.visible) continue;
       const [x1, y1] = this.worldToScreen(p.x, p.y);
       const [x2, y2] = this.worldToScreen(n.x, n.y);
+      if (!inView(x1, y1) && !inView(x2, y2)) continue; // viewport cull
       const onChain = sel && this.chain.has(n.id) && this.chain.has(p.id);
       const al = Math.min(dim(n.id), dim(p.id));
+      if (lowZoom) {
+        // fast flat line — no gradient creation
+        ctx.strokeStyle = `rgba(${this._rgb(onChain ? T.accent2 : T.accent)},${0.18 * al})`;
+        ctx.lineWidth = onChain ? 1.4 : 0.6;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        continue;
+      }
       const g = ctx.createLinearGradient(x1, y1, x2, y2);
       const ca = onChain ? T.accent2 : this.nodeColor(p);
       const cb = onChain ? T.accent2 : this.nodeColor(n);
@@ -522,25 +559,29 @@ export class MeshEngine {
       }
     }
 
-    // node halos
-    for (const n of this.nodes) {
-      if (!n.visible) continue;
-      const [x, y] = this.worldToScreen(n.x, n.y);
-      if (x < -80 || x > this.cssW + 80 || y < -80 || y > this.cssH + 80) continue;
-      const r = this._rad(n) * this.cam.s;
-      const al = dim(n.id);
-      const col = this.nodeColor(n);
-      const isNew = n.status === 'nuevo';
-      const birth = n.born ? Math.min(1, (now - n.born) / 900) : 1;
-      const hr = r * (isNew ? 3.4 : 2.4) * (0.85 + 0.15 * Math.sin(time * 2 + n.id));
-      const hg = ctx.createRadialGradient(x, y, 0, x, y, hr);
-      hg.addColorStop(0, `rgba(${this._rgb(col)},${0.5 * al * birth})`);
-      hg.addColorStop(1, `rgba(${this._rgb(col)},0)`);
-      ctx.beginPath(); ctx.arc(x, y, hr, 0, 6.28); ctx.fillStyle = hg; ctx.fill();
-      if (n.born && birth < 1) {
-        ctx.beginPath(); ctx.arc(x, y, r + (1 - birth) * 38, 0, 6.28);
-        ctx.strokeStyle = `rgba(${this._rgb(T.accent2)},${0.55 * (1 - birth) * al})`;
-        ctx.lineWidth = 2; ctx.stroke();
+    // node halos — skip entirely at very low zoom
+    if (!veryLowZoom) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const n of this.nodes) {
+        if (!n.visible) continue;
+        const [x, y] = this.worldToScreen(n.x, n.y);
+        if (!inView(x, y)) continue;
+        const r = this._rad(n) * this.cam.s;
+        const al = dim(n.id);
+        const col = this.nodeColor(n);
+        const isNew = n.status === 'nuevo';
+        const birth = n.born ? Math.min(1, (now - n.born) / 900) : 1;
+        if (lowZoom && !isNew && !n.isMe && n.depth > 0) continue; // only root/new halos at low zoom
+        const hr = r * (isNew ? 3.4 : 2.4) * (0.85 + 0.15 * Math.sin(time * 2 + n.id));
+        const hg = ctx.createRadialGradient(x, y, 0, x, y, hr);
+        hg.addColorStop(0, `rgba(${this._rgb(col)},${0.5 * al * birth})`);
+        hg.addColorStop(1, `rgba(${this._rgb(col)},0)`);
+        ctx.beginPath(); ctx.arc(x, y, hr, 0, 6.28); ctx.fillStyle = hg; ctx.fill();
+        if (n.born && birth < 1) {
+          ctx.beginPath(); ctx.arc(x, y, r + (1 - birth) * 38, 0, 6.28);
+          ctx.strokeStyle = `rgba(${this._rgb(T.accent2)},${0.55 * (1 - birth) * al})`;
+          ctx.lineWidth = 2; ctx.stroke();
+        }
       }
     }
 
@@ -549,11 +590,19 @@ export class MeshEngine {
     for (const n of this.nodes) {
       if (!n.visible) continue;
       const [x, y] = this.worldToScreen(n.x, n.y);
-      if (x < -80 || x > this.cssW + 80 || y < -80 || y > this.cssH + 80) continue;
+      if (!inView(x, y)) continue;
       const r = this._rad(n) * this.cam.s;
       const al = dim(n.id);
       const col = this.nodeColor(n);
       const isSel = n.id === this.selId, isHover = n.id === this.hoverId, isMe = n.isMe;
+      if (lowZoom && !isSel && !isHover && !isMe && n.depth > 0) {
+        // fast flat dot — no gradient, no label
+        ctx.globalAlpha = al * 0.85;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(2.5, r), 0, 6.28);
+        ctx.fillStyle = col; ctx.fill();
+        ctx.globalAlpha = 1;
+        continue;
+      }
       ctx.globalAlpha = al;
       if (isMe || isSel || n.depth === 0) {
         ctx.beginPath(); ctx.arc(x, y, r + 4, 0, 6.28);
