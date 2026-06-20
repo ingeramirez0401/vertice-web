@@ -195,18 +195,19 @@ export class MeshEngine {
       this._filterSet = null;
       this._filterPrimary = null;
     } else {
+      const full    = new Set<number>();
       const primary = new Set<number>();
-      const ancestors = new Set<number>();
       for (const n of this.nodes) {
-        const matchStatus = !status || n.status === status;
+        const matchStatus = !status    || n.status    === status;
         const matchMuni   = !municipio || n.municipio === municipio;
         if (matchStatus && matchMuni) {
+          full.add(n.id);
           primary.add(n.id);
           let cur = n.parent >= 0 ? this.nodes[n.parent] : undefined;
-          while (cur) { ancestors.add(cur.id); cur = cur.parent >= 0 ? this.nodes[cur.parent] : undefined; }
+          while (cur) { full.add(cur.id); cur = cur.parent >= 0 ? this.nodes[cur.parent] : undefined; }
         }
       }
-      this._filterSet     = new Set([...primary, ...ancestors]);
+      this._filterSet     = full;
       this._filterPrimary = primary;
     }
     this.onUpdate?.();
