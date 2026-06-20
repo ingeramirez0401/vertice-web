@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { MeshEngine, THEMES, MUNI_COLORS, ThemeKey, LayoutMode } from './MeshEngine';
+import { MeshEngine, THEMES, MUNI_COLORS, ThemeKey, LayoutMode, NodeStatus } from './MeshEngine';
 import ProfileModal from './ProfileModal';
 import QuickAddModal from './QuickAddModal';
 import IntelDashboard from './IntelDashboard';
@@ -42,6 +42,8 @@ export default function MeshCanvas({ userId }: Props) {
   const [layout,     setLayout]     = useState<LayoutMode>('radial');
   const [view,       setView]       = useState<'global' | 'personal'>('global');
   const [colorMode,  setColorMode]  = useState<'status' | 'municipio'>('status');
+  const [filterStatus, setFilterStatus] = useState<NodeStatus | null>(null);
+  const [filterMuni,   setFilterMuni]   = useState<string | null>(null);
   const [live,       setLive]       = useState(true);
   // mobile bottom-sheet: 'hidden' | 'peek' | 'full'
   const [sheet,      setSheet]      = useState<'hidden'|'peek'|'full'>('hidden');
@@ -84,7 +86,18 @@ export default function MeshCanvas({ userId }: Props) {
   const handleTheme     = (k: ThemeKey)   => { setThemeKey(k); engine?.setTheme(k); };
   const handleLayout    = (m: LayoutMode) => { setLayout(m);   engine?.setMode(m); };
   const handleView      = (v: 'global'|'personal') => { setView(v); engine?.setView(v); };
-  const handleColorMode = (cm: 'status'|'municipio') => { setColorMode(cm); if (engine) engine.colorMode = cm; };
+  const handleColorMode = (cm: 'status'|'municipio') => {
+    setColorMode(cm);
+    if (engine) engine.colorMode = cm;
+    // clear incompatible filter when switching modes
+    if (cm === 'status' && filterMuni)   { setFilterMuni(null);   engine?.setFilter(filterStatus, null); }
+    if (cm === 'municipio' && filterStatus) { setFilterStatus(null); engine?.setFilter(null, filterMuni); }
+  };
+  const handleFilter = (s: NodeStatus | null, m: string | null) => {
+    setFilterStatus(s);
+    setFilterMuni(m);
+    engine?.setFilter(s, m);
+  };
   const handleLive   = () => { const nl = !live; setLive(nl); if (engine) engine.live = nl; };
   const handleClose  = () => { setSelectedId(-1); setSheet('hidden'); engine?.clearSel(); };
 
@@ -496,20 +509,48 @@ export default function MeshCanvas({ userId }: Props) {
             <div onClick={() => handleColorMode('municipio')} style={pill(colorMode==='municipio')}>Municipio</div>
           </div>
           {colorMode === 'status' ? (
-            <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:11.5 }}>
-              {[{col:'var(--accent)',l:'Activo'},{col:'var(--accent2)',l:'Nuevo ingreso'},{col:'#3a434c',l:'Inactivo'}].map(({col,l}) => (
-                <div key={l} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ width:9, height:9, borderRadius:'50%', background:col, boxShadow:`0 0 8px ${col}`, flexShrink:0 }} />{l}
-                </div>
-              ))}
+            <div style={{ display:'flex', flexDirection:'column', gap:4, fontSize:11.5 }}>
+              {([
+                { s: null,       col: 'var(--muted)',   l: 'Todos' },
+                { s: 'activo',   col: 'var(--accent)',  l: 'Activo' },
+                { s: 'nuevo',    col: 'var(--accent2)', l: 'Nuevo ingreso' },
+                { s: 'inactivo', col: '#3a434c',        l: 'Inactivo' },
+              ] as {s:NodeStatus|null,col:string,l:string}[]).map(({s,col,l}) => {
+                const active = filterStatus === s;
+                return (
+                  <div key={l} onClick={() => handleFilter(s, null)}
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:8, cursor:'pointer', transition:'all .12s',
+                      background: active ? `rgba(255,255,255,.1)` : 'transparent',
+                      outline: active ? `1px solid ${col === 'var(--muted)' ? 'rgba(255,255,255,.2)' : col}` : '1px solid transparent' }}>
+                    <span style={{ width:9, height:9, borderRadius:'50%', background:col, boxShadow: active ? `0 0 8px ${col}` : 'none', flexShrink:0 }} />
+                    <span style={{ color: active ? 'var(--text)' : 'var(--muted)', fontWeight: active ? 600 : 400 }}>{l}</span>
+                    {active && s && <span style={{ marginLeft:'auto', fontSize:9, color:'var(--accent)' }}>✓</span>}
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:5, fontSize:10.5, maxHeight:160, overflowY:'auto' }}>
-              {Object.entries(MUNI_COLORS).map(([m, col]) => (
-                <div key={m} style={{ display:'flex', alignItems:'center', gap:7 }}>
-                  <span style={{ width:9, height:9, borderRadius:'50%', background:col, flexShrink:0 }} />{m}
+            <div style={{ display:'flex', flexDirection:'column', gap:3, fontSize:10.5, maxHeight:180, overflowY:'auto' }}>
+              {Object.entries(MUNI_COLORS).map(([m, col]) => {
+                const active = filterMuni === m;
+                return (
+                  <div key={m} onClick={() => handleFilter(null, active ? null : m)}
+                    style={{ display:'flex', alignItems:'center', gap:7, padding:'4px 7px', borderRadius:8, cursor:'pointer', transition:'all .12s',
+                      background: active ? `${col}22` : 'transparent',
+                      outline: active ? `1px solid ${col}` : '1px solid transparent' }}>
+                    <span style={{ width:9, height:9, borderRadius:'50%', background:col, flexShrink:0,
+                      boxShadow: active ? `0 0 8px ${col}` : 'none' }} />
+                    <span style={{ color: active ? col : 'var(--muted)', fontWeight: active ? 600 : 400 }}>{m}</span>
+                    {active && <span style={{ marginLeft:'auto', fontSize:9, color:col }}>✓</span>}
+                  </div>
+                );
+              })}
+              {filterMuni && (
+                <div onClick={() => handleFilter(null, null)}
+                  style={{ marginTop:4, padding:'4px 7px', borderRadius:7, cursor:'pointer', fontSize:10, color:'var(--muted)', background:'rgba(255,255,255,.06)', textAlign:'center' }}>
+                  ✕ Limpiar filtro
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

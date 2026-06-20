@@ -96,6 +96,8 @@ export class MeshEngine {
   private _isMobile = false;
   private _fpsCap = 60;
   private _lastDraw = 0;
+  private _filterSet: Set<number> | null = null;
+  private _filterPrimary: Set<number> | null = null;
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -185,6 +187,28 @@ export class MeshEngine {
     let p: GraphNode | undefined = parent;
     while (p) { p.desc = (p.desc || 0) + 1; p = p.parent >= 0 ? this.nodes[p.parent] : undefined; }
     this._layout(false);
+    this.onUpdate?.();
+  }
+
+  setFilter(status: NodeStatus | null, municipio: string | null): void {
+    if (!status && !municipio) {
+      this._filterSet = null;
+      this._filterPrimary = null;
+    } else {
+      const primary = new Set<number>();
+      const ancestors = new Set<number>();
+      for (const n of this.nodes) {
+        const matchStatus = !status || n.status === status;
+        const matchMuni   = !municipio || n.municipio === municipio;
+        if (matchStatus && matchMuni) {
+          primary.add(n.id);
+          let cur = n.parent >= 0 ? this.nodes[n.parent] : undefined;
+          while (cur) { ancestors.add(cur.id); cur = cur.parent >= 0 ? this.nodes[cur.parent] : undefined; }
+        }
+      }
+      this._filterSet     = new Set([...primary, ...ancestors]);
+      this._filterPrimary = primary;
+    }
     this.onUpdate?.();
   }
 
@@ -516,8 +540,11 @@ export class MeshEngine {
     }
 
     const dim = (id: number): number => {
+      if (this.nodes[id]?.depth === 0) return 1;
+      if (this._filterSet && !this._filterSet.has(id)) return 0.05;
       if (sel) return this.chain.has(id) ? 1 : 0.2;
       if (focus) return focus.has(id) ? 1 : 0.16;
+      if (this._filterSet && this._filterPrimary && !this._filterPrimary.has(id)) return 0.28;
       return 1;
     };
 
