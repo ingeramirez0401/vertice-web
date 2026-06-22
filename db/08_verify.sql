@@ -14,6 +14,11 @@ BEGIN
     RAISE EXCEPTION 'No estás registrado en la red';
   END IF;
 
+  -- Solo Candidato (0), Coordinador Municipal (1) y Líder de Puesto (2) pueden verificar
+  IF (SELECT depth FROM vtx_members WHERE user_id = auth.uid()) > 2 THEN
+    RAISE EXCEPTION 'Tu rol no tiene permiso para verificar miembros';
+  END IF;
+
   SELECT path INTO v_target_path
   FROM vtx_members WHERE id = p_member_uid;
 

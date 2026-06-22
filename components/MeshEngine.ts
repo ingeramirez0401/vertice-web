@@ -466,7 +466,7 @@ export class MeshEngine {
     }));
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
     const me = this.meId >= 0 ? this.nodes[this.meId] : null;
-    const canVerify = !n.verified && !!me && n.depth > me.depth && this.isAncestorOf(this.meId, id);
+    const canVerify = !n.verified && !!me && me.depth <= 2 && n.depth > me.depth && this.isAncestorOf(this.meId, id);
     return {
       uid: n.uid,
       name: n.name, initials: this.initials(n), color: this.nodeColor(n),
