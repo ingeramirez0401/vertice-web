@@ -105,6 +105,14 @@ export default function MeshCanvas({ userId }: Props) {
 
   const handleProfile = () => setProfileOpen(true);
 
+  const handleVerify = useCallback(async () => {
+    if (!selData || selectedId < 0) return;
+    const { error } = await supabase.rpc('vtx_verify_member', { p_member_uid: selData.uid });
+    if (error) { showToast('Error al verificar'); return; }
+    if (engine) { engine.nodes[selectedId].verified = true; engine.onUpdate?.(); }
+    showToast(`${selData.name.split(' ')[0]} verificado ✓`);
+  }, [selData, selectedId, engine, supabase, showToast]);
+
   const executeVoiceCommand = useCallback((cmd: VoiceCommand) => {
     const eng = engineRef.current;
     switch (cmd.type) {
@@ -317,6 +325,17 @@ export default function MeshCanvas({ userId }: Props) {
                   style={{ marginTop:9, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'10px 0', borderRadius:10, background:`rgba(39,224,200,.12)`, border:`1px solid rgba(39,224,200,.35)`, color:'var(--accent)', cursor:'pointer', fontSize:12.5, fontWeight:600 }}>
                   ⧉ Copiar link de invitación
                 </div>
+                {selData.canVerify && (
+                  <div onClick={handleVerify}
+                    style={{ marginTop:8, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'10px 0', borderRadius:10, background:`rgba(61,255,154,.12)`, border:`1px solid rgba(61,255,154,.35)`, color:'#3dff9a', cursor:'pointer', fontSize:12.5, fontWeight:600 }}>
+                    ✓ Verificar identidad
+                  </div>
+                )}
+                {selData.verified && !selData.canVerify && (
+                  <div style={{ marginTop:8, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', fontSize:11, color:'#3dff9a', opacity:.7 }}>
+                    ✓ Identidad verificada
+                  </div>
+                )}
                 {sheet === 'peek' && (
                   <div onClick={() => setSheet('full')}
                     style={{ marginTop:8, textAlign:'center', fontSize:12, color:'var(--accent)', cursor:'pointer', padding:'6px 0' }}>
@@ -661,6 +680,17 @@ export default function MeshCanvas({ userId }: Props) {
             style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 20px', cursor:'pointer', borderBottom:`1px solid var(--border)`, color:'var(--accent)', fontSize:12, fontWeight:600 }}>
             ⧉ Copiar link de {selData.name.split(' ')[0]}
           </div>
+          {selData.canVerify && (
+            <div onClick={handleVerify}
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 20px', cursor:'pointer', borderBottom:`1px solid var(--border)`, color:'#3dff9a', fontSize:12, fontWeight:600 }}>
+              ✓ Verificar identidad
+            </div>
+          )}
+          {selData.verified && !selData.canVerify && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 20px', borderBottom:`1px solid var(--border)`, color:'#3dff9a', fontSize:11, opacity:.7 }}>
+              ✓ Identidad verificada
+            </div>
+          )}
           <div style={{ padding:'14px 20px 6px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
               <span style={{ fontSize:10, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--muted)' }}>Linaje hasta el origen</span>

@@ -10,7 +10,7 @@
 
 | # | Feature | Estado | Sprint |
 |---|---------|--------|--------|
-| 1 | Verificación de miembros | ⬜ Pendiente | 1 |
+| 1 | Verificación de miembros | ✅ Listo | 1 |
 | 2 | Métricas de captación (ranking) | ⬜ Pendiente | 1 |
 | 3 | Exportar red (CSV) | ⬜ Pendiente | 2 |
 | 4 | Notificaciones push | ⬜ Pendiente | 2 |

@@ -400,6 +400,15 @@ export class MeshEngine {
     return arr;
   }
 
+  isAncestorOf(ancestorId: number, nodeId: number): boolean {
+    let cur = this.nodes[nodeId];
+    while (cur && cur.parent >= 0) {
+      if (cur.parent === ancestorId) return true;
+      cur = this.nodes[cur.parent];
+    }
+    return false;
+  }
+
   descSet(id: number): Set<number> {
     const set = new Set<number>();
     const st = [id];
@@ -456,7 +465,10 @@ export class MeshEngine {
       roleLabel: roleForDepth(k.depth), descCount: k.desc || 0, nodeId: k.id,
     }));
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || '');
+    const me = this.meId >= 0 ? this.nodes[this.meId] : null;
+    const canVerify = !n.verified && !!me && n.depth > me.depth && this.isAncestorOf(this.meId, id);
     return {
+      uid: n.uid,
       name: n.name, initials: this.initials(n), color: this.nodeColor(n),
       roleLabel: roleForDepth(n.depth), idCode: n.idCode,
       depth: n.depth, childrenCount: n.children.length,
@@ -466,6 +478,8 @@ export class MeshEngine {
       ancestors: anc, hasChildren: n.children.length > 0, children: shown,
       moreChildren: Math.max(0, (n.desc || 0) - n.children.length),
       collapsed: n.collapsed,
+      verified: n.verified ?? false,
+      canVerify,
       municipio: n.municipio ?? null,
       cedula: n.cedula ? ('****' + n.cedula.slice(-4)) : null,
       shareLink: `${origin}/unirse/${n.idCode}`,
@@ -646,6 +660,18 @@ export class MeshEngine {
         ctx.font = `bold ${Math.max(8, r * 0.9)}px ${this._uiFont}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('+', x, y + 0.5);
+      }
+      // verified badge — top-right corner of node
+      if (n.verified && r > 4) {
+        const br = Math.max(4, r * 0.38);
+        const bx = x + r * 0.62, by = y - r * 0.62;
+        ctx.globalAlpha = al;
+        ctx.beginPath(); ctx.arc(bx, by, br, 0, 6.28);
+        ctx.fillStyle = '#3dff9a'; ctx.fill();
+        ctx.font = `bold ${Math.max(5, br * 1.1)}px ${this._uiFont}`;
+        ctx.fillStyle = '#04121a';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('✓', bx, by + 0.5);
       }
       const showLabel = (n.depth <= 1 || isSel || isHover || isMe || (n.children.length >= 4 && this.cam.s > 0.5)) && this.cam.s > 0.2 && al > 0.45;
       if (showLabel) {
