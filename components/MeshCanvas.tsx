@@ -6,6 +6,8 @@ import { MeshEngine, THEMES, MUNI_COLORS, ThemeKey, LayoutMode, NodeStatus } fro
 import ProfileModal from './ProfileModal';
 import QuickAddModal from './QuickAddModal';
 import IntelDashboard from './IntelDashboard';
+import VoiceButton from './VoiceButton';
+import type { VoiceCommand } from '@/lib/voice/commands';
 
 interface Props { userId: string; }
 
@@ -103,6 +105,34 @@ export default function MeshCanvas({ userId }: Props) {
 
   const handleProfile = () => setProfileOpen(true);
 
+  const executeVoiceCommand = useCallback((cmd: VoiceCommand) => {
+    const eng = engineRef.current;
+    switch (cmd.type) {
+      case 'VIEW':          setView(cmd.view); eng?.setView(cmd.view); break;
+      case 'LAYOUT':        setLayout(cmd.mode); eng?.setMode(cmd.mode); break;
+      case 'FILTER_STATUS': setFilterStatus(cmd.status); setFilterMuni(null); eng?.setFilter(cmd.status, null); break;
+      case 'FILTER_MUNI':   setFilterMuni(cmd.municipio); setFilterStatus(null); eng?.setFilter(null, cmd.municipio); break;
+      case 'COLOR_MODE':    setColorMode(cmd.mode); if (eng) eng.colorMode = cmd.mode; break;
+      case 'FIT_VIEW':      eng?.fitView(true); break;
+      case 'MODAL':
+        if (cmd.modal === 'intel')    setIntelOpen(true);
+        if (cmd.modal === 'quickadd') setQuickAddOpen(true);
+        if (cmd.modal === 'profile')  setProfileOpen(true);
+        break;
+      case 'NODE_ACTION':
+        if (selectedId >= 0) eng?.toggleCollapse(selectedId);
+        break;
+      case 'SEARCH':
+        setQuery(cmd.query);
+        if (isMobile) setSearchOpen(true);
+        break;
+      case 'UNKNOWN':
+        showToast('No entendí ese comando');
+        return;
+    }
+    showToast(cmd.label + ' ✓');
+  }, [selectedId, isMobile, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleShare = async () => {
     if (!meData) return;
     if (typeof navigator !== 'undefined' && navigator.share) {
@@ -193,6 +223,7 @@ export default function MeshCanvas({ userId }: Props) {
                   <path d="M10.5 10.5L13 13" stroke="var(--muted)" strokeWidth="1.6" strokeLinecap="round"/>
                 </svg>
               </div>
+              <VoiceButton themeKey={themeKey} onCommand={executeVoiceCommand} size={38} />
               <div onClick={handleProfile}
                 style={{ height:38, padding:'0 14px', borderRadius:11, background: meData ? accentGrad : 'rgba(255,255,255,.1)', display:'flex', alignItems:'center', gap:7, cursor:'pointer', fontWeight:700, fontSize:13, color: meData ? '#04121a' : 'var(--muted)' }}>
                 <span>⟢</span><span>{meData ? 'Mi ID' : 'Perfil'}</span>
@@ -482,6 +513,7 @@ export default function MeshCanvas({ userId }: Props) {
             style={{ display:'flex', alignItems:'center', gap:8, height:38, padding:'0 14px', borderRadius:11, cursor:'pointer', fontWeight:600, fontSize:12.5, color:T.text, background:'rgba(255,255,255,.07)', border:`1px solid ${T.border}` }}>
             📊 Tablero
           </div>
+          <VoiceButton themeKey={themeKey} onCommand={executeVoiceCommand} size={38} />
           {meData && (
             <div onClick={() => setQuickAddOpen(true)}
               style={{ display:'flex', alignItems:'center', gap:8, height:38, padding:'0 14px', borderRadius:11, cursor:'pointer', fontWeight:700, fontSize:12.5, color:T.accent, background:`${T.accent}18`, border:`1px solid ${T.accent}55` }}>
