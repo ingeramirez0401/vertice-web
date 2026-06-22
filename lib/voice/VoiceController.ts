@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type VoiceState = 'idle' | 'listening' | 'processing';
 
 export class VoiceController {
-  private rec: SpeechRecognition | null = null;
+  private rec: any = null;
   private _state: VoiceState = 'idle';
 
   onStateChange?: (s: VoiceState) => void;
@@ -18,8 +19,7 @@ export class VoiceController {
 
   start(): void {
     if (this._state !== 'idle') return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: typeof SpeechRecognition = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SR) { this.onError?.('Tu navegador no soporta comandos de voz'); return; }
 
     this.rec = new SR();
@@ -33,9 +33,9 @@ export class VoiceController {
       this.onStateChange?.('listening');
     };
 
-    this.rec.onresult = (e: SpeechRecognitionEvent) => {
+    this.rec.onresult = (e: any) => {
       const last = e.results[e.results.length - 1];
-      const text = last[0].transcript.trim();
+      const text: string = last[0].transcript.trim();
       this.onTranscript?.(text);
       if (last.isFinal) {
         this._state = 'processing';
@@ -44,7 +44,7 @@ export class VoiceController {
       }
     };
 
-    this.rec.onerror = (e: SpeechRecognitionErrorEvent) => {
+    this.rec.onerror = (e: any) => {
       this._state = 'idle';
       this.onStateChange?.('idle');
       if (e.error !== 'no-speech' && e.error !== 'aborted') {
@@ -54,7 +54,6 @@ export class VoiceController {
       }
     };
 
-    // fires after result too — only reset if we never got a result
     this.rec.onend = () => {
       if (this._state === 'listening') {
         this._state = 'idle';
